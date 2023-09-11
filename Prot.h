@@ -1,0 +1,271 @@
+#ifndef PROT_H
+#define PROT_H
+
+struct MODBUS_MESSAGE
+{
+    unsigned char TX;
+    unsigned char RX;
+    unsigned char dist_addressMB;
+    unsigned char data[248];
+};
+
+struct FL_MODBUS_PROT_ID_CMD_MESSAGE
+{
+    char info[8];
+    char phone[16]; // Указывайте максимальную длину
+};
+
+#define PROT_VERSION				0x0204
+
+#define PROT_MAX_SIZE				0x0100
+
+#define PROT_FUNC_SYSTEM			0x6E
+
+
+
+// request & reply command codes
+#define PROT_REPLY_ERROR			0x00
+
+#define PROT_RESET_CMD				0x01
+#define PROT_RESET_OK				0x81
+
+#define PROT_ID_CMD					0x02
+#define PROT_ID_OK					0x82
+
+#define PROT_STATE_REQ_CMD			0x03
+#define PROT_STATE_REQ_OK			0x83
+
+#define PROT_TIME_SET_CMD			0x04
+#define PROT_TIME_SET_OK			0x84
+
+#define PROT_TIME_REQ_CMD			0x05
+#define PROT_TIME_REQ_OK			0x85
+
+#define PROT_SYSLOG_WR_CMD			0x06
+#define PROT_SYSLOG_WR_OK			0x86
+
+#define PROT_CALL_CMD				0x07
+#define PROT_CALL_OK				0x87
+
+#define PROT_CLOCK_SYNC_CMD			0x08
+#define PROT_CLOCK_SYNC_OK			0x88
+
+#define PROT_BRIDGE_ON_CMD			0x0E
+#define PROT_BRIDGE_ON_OK			0x8E
+
+#define PROT_BRIDGE_OFF_CMD			0x0F
+#define PROT_BRIDGE_OFF_OK			0x8F
+
+
+
+#define PROT_CONF_START_CMD			0x11
+#define PROT_CONF_START_OK			0x91
+
+#define PROT_CONF_WR_CMD			0x12
+#define PROT_CONF_WR_OK				0x92
+
+#define PROT_CONF_RD_CMD			0x13
+#define PROT_CONF_RD_OK				0x93
+
+#define PROT_CONF_END_CMD			0x14
+#define PROT_CONF_END_OK			0x94
+
+#define PROT_FIRMWARE_START_CMD		0x19
+#define PROT_FIRMWARE_START_OK		0x99
+
+#define PROT_FIRMWARE_WR_CMD		0x1A
+#define PROT_FIRMWARE_WR_OK			0x9A
+
+#define PROT_FIRMWARE_END_CMD		0x1C
+#define PROT_FIRMWARE_END_OK		0x9C
+
+
+
+
+#define PROT_FILE_SRCH_INIT_CMD		0x21
+#define PROT_FILE_SRCH_INIT_OK		0xA1
+
+#define PROT_FILE_SRCH_CMD			0x22
+#define PROT_FILE_SRCH_OK			0xA2
+
+#define PROT_FILE_DEL_CMD			0x23
+#define PROT_FILE_DEL_OK			0xA3
+
+#define PROT_FILE_OPEN_WR_CMD		0x24
+#define PROT_FILE_OPEN_WR_OK		0xA4
+
+#define PROT_FILE_OPEN_RD_CMD		0x25
+#define PROT_FILE_OPEN_RD_OK		0xA5
+
+#define PROT_FILE_CLOSE_CMD			0x26
+#define PROT_FILE_CLOSE_OK			0xA6
+
+#define PROT_FILE_RESULT_CMD		0x27
+#define PROT_FILE_RESULT_OK			0xA7
+
+#define PROT_FILE_WR_CMD			0x28
+#define PROT_FILE_WR_OK				0xA8
+
+#define PROT_FILE_RD_CMD			0x29
+#define PROT_FILE_RD_OK				0xA9
+
+#define PROT_FILE_RENAME_CMD		0x2C
+#define PROT_FILE_RENAME_OK			0xAC
+
+#define PROT_FILE_FLASH_CLR_CMD		0x2F
+#define PROT_FILE_FLASH_CLR_OK		0xAF
+
+
+
+
+#define PROT_DMX_CONTROL_CMD		0x31
+#define PROT_DMX_CONTROL_OK			0xB1
+
+#define PROT_DMX_COMPLETE_CMD		0x32
+#define PROT_DMX_COMPLETE_OK		0xB2
+
+#define PROT_DMX_REC_CTRL_CMD		0x33
+#define PROT_DMX_REC_CTRL_OK		0xB3
+
+#define PROT_DMX_REC_CMPL_CMD		0x34
+#define PROT_DMX_REC_CMPL_OK		0xB4
+
+#define PROT_DMX_SET_CMD			0x35
+#define PROT_DMX_SET_OK				0xB5
+
+#define PROT_DMX_RELEASE_CMD		0x36
+#define PROT_DMX_RELEASE_OK			0xB6
+
+#define PROT_DMX_MODE_CMD			0x38
+#define PROT_DMX_MODE_OK			0xB8
+
+#define PROT_DMX_MCONTROL_CMD		0x39
+#define PROT_DMX_MCONTROL_OK		0xB9
+
+
+
+
+#define PROT_RELAY_SET_CMD			0x41
+#define PROT_RELAY_SET_OK			0xC1
+
+#define PROT_RELAY_REQ_CMD			0x42
+#define PROT_RELAY_REQ_OK			0xC2
+
+#define PROT_INPUT_REQ_CMD			0x43
+#define PROT_INPUT_REQ_OK			0xC3
+
+#define PROT_INPUT_STATE_CMD		0x44
+#define PROT_INPUT_STATE_OK			0xC4
+
+#define PROT_CNTR_REQ_CMD			0x48
+#define PROT_CNTR_REQ_OK			0xC8
+
+
+
+
+#define PROT_PROC_CONTROL_CMD		0x51
+#define PROT_PROC_CONTROL_OK		0xD1
+
+#define PROT_PROC_REQ_CMD			0x52
+#define PROT_PROC_REQ_OK			0xD2
+
+#define PROT_LOG_CONTROL_CMD		0x59
+#define PROT_LOG_CONTROL_OK			0xD9
+
+
+
+
+// error codes
+#define PROT_ERR_UNKNOWN			0x00
+#define PROT_ERR_HARDWARE			0x01
+#define PROT_ERR_INVALID_CMD		0x02
+#define PROT_ERR_INVALID_DATA		0x03
+#define PROT_ERR_STATE				0x04
+#define PROT_ERR_NO_FILE			0x05
+#define PROT_ERR_END_OF_FILE		0x06
+#define PROT_ERR_FILE_IO			0x07
+
+
+
+
+
+// device types
+#define PROT_DEVTYPE_CONTROL		0x01
+#define PROT_DEVTYPE_CONTROL_RTC	0x02
+#define PROT_DEVTYPE_REC_1DMX		0x11
+#define PROT_DEVTYPE_REC_BT1DMX		0x12
+#define PROT_DEVTYPE_RELAY_8O16I	0x21
+#define PROT_DEVTYPE_RELAY_RTC2O	0x28
+#define PROT_DEVTYPE_BRIDGE_GSM		0x41
+#define PROT_DEVTYPE_BRIDGE_NET		0x42
+
+
+// state elements types
+#define PROT_STATTYPE_STRING		0x01
+#define PROT_STATTYPE_TEMP			0x03
+#define PROT_STATTYPE_SIGNAL		0x04
+#define PROT_STATTYPE_PROCESS		0x05
+#define PROT_STATTYPE_DMX_LEVEL		0x11
+#define PROT_STATTYPE_BT_SLAVE		0x12
+#define PROT_STATTYPE_CALL			0x41
+
+
+// data types
+#define PROT_DATATYPE_CONFIG		0x00
+#define PROT_DATATYPE_LOG			0x01
+#define PROT_DATATYPE_DMX_PROG		0x02
+#define PROT_DATATYPE_DMX_REC		0x03
+#define PROT_DATATYPE_REF			0x04
+
+#define PROT_DATA_SIGNATURE			0x5FA0
+
+
+
+// file search flags
+#define PROT_FILE_SIZE_MASK			0x07
+#define PROT_FILE_SIZE_LT			0x01
+#define PROT_FILE_SIZE_GT			0x02
+#define PROT_FILE_SIZE_EQ			0x04
+#define PROT_FILE_SIZE_LE			0x05
+#define PROT_FILE_SIZE_GE			0x06
+
+#define PROT_FILE_TIME_MASK			(0x07<<3)
+#define PROT_FILE_TIME_LT			(0x01<<3)
+#define PROT_FILE_TIME_GT			(0x02<<3)
+#define PROT_FILE_TIME_EQ			(0x04<<3)
+#define PROT_FILE_TIME_LE			(0x05<<3)
+#define PROT_FILE_TIME_GE			(0x06<<3)
+
+#define PROT_FILE_NAME_EQ			0x80
+
+
+
+
+// DMX program mode
+#define PROT_DMXMODE_STOP			0x00
+#define PROT_DMXMODE_ONCE			0x01
+#define PROT_DMXMODE_CYCLE			0x02
+#define PROT_DMXMODE_WAIT			0x04
+#define PROT_DMXMODE_MULTI			0x08
+#define PROT_DMXMODE_LEVEL_EQ		0x10
+#define PROT_DMXMODE_LEVEL_LE		0x20
+#define PROT_DMXMODE_LEVEL_GE		0x00
+#define PROT_DMXMODE_LEVEL_REMOVE	0x40
+#define PROT_DMXMODE_LEVEL_PRIOR	0x80
+
+
+
+// DMX program record types
+#define PROT_DMXPROG_SET			0x01
+#define PROT_DMXPROG_PAUSE			0x02
+#define PROT_DMXPROG_GRADIENT		0x03
+#define PROT_DMXPROG_END			0x7F
+
+
+#define PROT_DMXREC_STOP			0x00
+#define PROT_DMXREC_START			0x01
+#define PROT_DMXREC_WAIT			0x02
+#define PROT_DMXREC_REQ				0xFF
+
+
+#endif // PROT_H

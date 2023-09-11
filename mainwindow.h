@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QFileDialog>
+#include <QInputDialog>
 #include "iniparser.h"
 
 QT_BEGIN_NAMESPACE
@@ -20,8 +21,11 @@ public:
 private slots:
     void on_openIniFileAction_triggered();
 
+    void on_pushButton_clicked();
+
 private:
     Ui::MainWindow *ui;
+    IniParser *iniParser;
 
     void populateDeviceTable(const QMap<QString, Device*> &devices);
 };
