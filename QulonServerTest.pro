@@ -1,4 +1,4 @@
-QT       += core gui network
+QT       += core gui serialbus
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -12,13 +12,15 @@ SOURCES += \
     device.cpp \
     iniparser.cpp \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    modbusclient.cpp
 
 HEADERS += \
     Prot.h \
     device.h \
     iniparser.h \
-    mainwindow.h
+    mainwindow.h \
+    modbusclient.h
 
 FORMS += \
     mainwindow.ui

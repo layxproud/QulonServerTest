@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QDebug>
+#include "modbusclient.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -77,19 +78,7 @@ void MainWindow::on_openIniFileAction_triggered()
 
 void MainWindow::on_pushButton_clicked()
 {
-    // Получите номер телефона (или другой уникальный идентификатор) устройства,
-    // которое вы хотите подключить. Например, с помощью диалогового окна для ввода номера.
-    QString phoneNumber = QInputDialog::getText(this, tr("Введите номер телефона"), tr("Номер телефона:"));
-
-    // Проверьте, существует ли такой номер телефона в QMap `devices`.
-    if (iniParser->devices.contains(phoneNumber)) {
-        Device* device = iniParser->devices.value(phoneNumber);
-
-        // Вызовите метод вашего объекта `Device`, который выполняет подключение к серверу.
-        // Здесь предполагается, что у вас есть такой метод в классе `Device`.
-        device->connectToServer(iniParser->gprsSettings["ip"], iniParser->gprsSettings["port"].toInt()); // Замените serverIP и serverPort на реальные значения сервера.
-    } else {
-        qDebug() << "Устройство с номером" << phoneNumber << "не найдено в списке.";
-    }
+    ModbusClient modbusClient;
+    modbusClient.connectToServer("127.0.0.1", 20000);
 }
 
