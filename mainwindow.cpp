@@ -78,7 +78,18 @@ void MainWindow::on_openIniFileAction_triggered()
 
 void MainWindow::on_pushButton_clicked()
 {
-    ModbusClient modbusClient;
-    modbusClient.connectToServer("127.0.0.1", 20000);
+    QString phoneNumber = QInputDialog::getText(this, tr("Введите номер телефона"), tr("Номер телефона:"));
+
+    if (iniParser->devices.contains(phoneNumber))
+    {
+        Device* device = iniParser->devices.value(phoneNumber);
+
+        device->connectToServer("127.0.0.1", 20000);
+    }
+
+    else
+    {
+        qDebug() << "Устройство с номером" << phoneNumber << "не найдено в списке.";
+    }
 }
 
