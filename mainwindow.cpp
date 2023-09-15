@@ -1,14 +1,15 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QDebug>
-#include "modbusclient.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    iniParser = new IniParser();
+    logger = new Logger(this);
+    logger->setLogWindow(ui->logWindow);
+    iniParser = new IniParser(logger, this);
 }
 
 MainWindow::~MainWindow()
@@ -43,6 +44,7 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
         QTableWidgetItem* phoneItem = new QTableWidgetItem(device->getPhone());
         QTableWidgetItem* nameItem = new QTableWidgetItem(device->getName());
         QTableWidgetItem* statusItem = new QTableWidgetItem();
+
         if (device->isConnected())
         {
             statusItem->setText(tr("Подключено"));
@@ -57,6 +59,14 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
         ui->tableWidget->setItem(row, 2, statusItem);
 
         ++row;
+
+        connect(device, &Device::connected, this, [=]() {
+            statusItem->setText(tr("Подключено"));
+        });
+
+        connect(device, &Device::disconnected, this, [=]() {
+            statusItem->setText(tr("Нет соединения"));
+        });
     }
 }
 
@@ -69,27 +79,34 @@ void MainWindow::on_openIniFileAction_triggered()
                                                     tr("Config files (*.ini)"));
     if (!filePath.isEmpty())
     {
-
         iniParser->parseIniFile(filePath);
         populateDeviceTable(iniParser->devices);
     }
 }
 
 
-void MainWindow::on_pushButton_clicked()
+void MainWindow::on_connectButton_clicked()
 {
-    QString phoneNumber = QInputDialog::getText(this, tr("Введите номер телефона"), tr("Номер телефона:"));
+    bool ok;
 
-    if (iniParser->devices.contains(phoneNumber))
+    QString phoneNumber = QInputDialog::getText(this,
+                                                tr("Введите номер телефона"),
+                                                tr("Номер телефона:"),
+                                                QLineEdit::Normal,
+                                                QString(),
+                                                &ok);
+
+    if (ok && !phoneNumber.isEmpty())
     {
-        Device* device = iniParser->devices.value(phoneNumber);
-
-        device->connectToServer("127.0.0.1", 20000);
-    }
-
-    else
-    {
-        qDebug() << "Устройство с номером" << phoneNumber << "не найдено в списке.";
+        if (iniParser->devices.contains(phoneNumber))
+        {
+            Device* device = iniParser->devices.value(phoneNumber);
+            device->connectToServer("127.0.0.1", 20000);
+        }
+        else
+        {
+            logger->logWarning(tr("Устройство с номером ") + phoneNumber + tr(" не найдено в списке."));
+        }
     }
 }
 

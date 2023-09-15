@@ -126,6 +126,23 @@ void CalculateCRC(const FL_MODBUS_MESSAGE& mm, const std::vector<UCHAR>& data, U
     crc[1]=CRChi;
 };
 
+void CalculateCRC(std::vector<UCHAR> &msg)
+{
+    UCHAR c, CRChi, CRClo;
+    CRChi=CRClo= 0xFF;
+
+    for (unsigned int i=0;i<msg.size();i++)
+    {
+        c= msg[i];
+        c^= CRClo;
+        CRClo= CRChi^CRC_Table_Hi[c];
+        CRChi= CRC_Table_Lo[c];
+    };
+
+    msg.push_back(CRClo);
+    msg.push_back(CRChi);
+};
+
 
 #define PROT_VERSION				0x0204
 

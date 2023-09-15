@@ -3,13 +3,14 @@
 
 #include <QObject>
 #include <QTcpSocket>
+#include "logger.h"
 
 class Device : public QObject
 {
     Q_OBJECT
 public:
     explicit Device(QObject *parent = nullptr);
-    Device(const QString &phone, const QString &name, QObject *parent = nullptr);
+    Device(const QString &phone, const QString &name, Logger *logger, QObject *parent = nullptr);
 
     QString getPhone() const;
     QString getName() const;
@@ -32,15 +33,21 @@ private slots:
     void onSocketBytesWritten(qint64 bytes);
 
 private:
+    // ini file variables
     QString _phone;
     QString _name;
     bool _connected = false;
 
-    QTcpSocket _socket;
+    // Logger
+    Logger *loggerInstance;
 
+    // Network variables
+    QTcpSocket _socket;
     QByteArray _currentMessage; // Буфер для текущего сообщения
 
 private:
+    void setLogger(Logger *logger);
+
     void sendSyncCommand();
 };
 

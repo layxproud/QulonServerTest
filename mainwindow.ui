@@ -23,7 +23,7 @@
      </widget>
     </item>
     <item row="1" column="0">
-     <widget class="QTextBrowser" name="textBrowser">
+     <widget class="QTextBrowser" name="logWindow">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Maximum" vsizetype="Expanding">
         <horstretch>0</horstretch>
@@ -36,7 +36,7 @@
      <widget class="QTableWidget" name="tableWidget"/>
     </item>
     <item row="2" column="1">
-     <widget class="QPushButton" name="pushButton">
+     <widget class="QPushButton" name="connectButton">
       <property name="text">
        <string>Соединиться</string>
       </property>

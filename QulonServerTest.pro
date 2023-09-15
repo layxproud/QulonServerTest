@@ -11,16 +11,16 @@ CONFIG += c++17
 SOURCES += \
     device.cpp \
     iniparser.cpp \
+    logger.cpp \
     main.cpp \
-    mainwindow.cpp \
-    modbusclient.cpp
+    mainwindow.cpp
 
 HEADERS += \
     Prot.h \
     device.h \
     iniparser.h \
-    mainwindow.h \
-    modbusclient.h
+    logger.h \
+    mainwindow.h
 
 FORMS += \
     mainwindow.ui
