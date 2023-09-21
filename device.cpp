@@ -79,14 +79,16 @@ void Device::sendIdentificationMessage()
     _client.sendIdentificationMessage(_phone);
 }
 
+
 void Device::onConnected()
 {
     _connected = true;
     loggerInstance->logInfo(tr("Устройство с ID ") + _phone + tr(" подключено к серверу. Выполняется синхронизация..."));
     emit connected();
 
-    sendSyncCommand();
+    // sendSyncCommand();
 }
+
 
 void Device::onDisconnected()
 {
@@ -95,9 +97,12 @@ void Device::onDisconnected()
     emit disconnected();
 }
 
+
 void Device::onDataReceived(const QByteArray &data)
 {
     loggerInstance->logInfo(tr("Получено сообщение от сервера: ") + loggerInstance->byteArrToStr(data));
+
+    _client.parseMessage(data);
 }
 
 

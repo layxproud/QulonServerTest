@@ -25,6 +25,7 @@ void TcpClient::sendSyncCommand()
     syncData.push_back(0x00);
     syncData.push_back(0x80);
     CalculateCRC(syncData);
+
     QByteArray byteArray;
     byteArray.append(static_cast<char>(0xC0));
     byteArray.append(reinterpret_cast<const char*>(syncData.data()), static_cast<int>(syncData.size()));
@@ -49,6 +50,34 @@ void TcpClient::sendIdentificationMessage(const QString &phone)
     _socket.write(byteArray);
 
     emit dataSent(_currentMessage);
+}
+
+void TcpClient::parseMessage(const QByteArray &message)
+{
+    FL_MODBUS_MESSAGE modbusMessage;
+    QByteArray choppedMessage = message.mid(1, message.size() - 2); // remove the first and last byte (0xC0)
+    QByteArray syncMessage = QByteArray::fromHex("00800010"); // the sync message is always these bytes
+    qDebug() << choppedMessage;
+
+    // Sync message case
+    if (choppedMessage == syncMessage)
+    {
+        sendSyncCommand();
+    }
+    // FL_MODBUS_MESSAGE case
+    else if (static_cast<unsigned char>(choppedMessage[3]) == 0x6E)
+    {
+        memcpy(&modbusMessage, message.constData() + 1, sizeof(FL_MODBUS_MESSAGE));
+
+        qDebug() << hex << modbusMessage.tx_id;
+        qDebug() << hex << modbusMessage.rx_id;
+        qDebug() << hex << modbusMessage.dist_addressMB;
+        qDebug() << hex << modbusMessage.FUNCT;
+        qDebug() << hex << modbusMessage.sour_address;
+        qDebug() << hex << modbusMessage.dist_address;
+        qDebug() << hex << modbusMessage.command;
+        qDebug() << hex << modbusMessage.len;
+    }
 }
 
 void TcpClient::onSocketConnected()

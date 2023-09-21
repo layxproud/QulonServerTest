@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QTcpSocket>
+#include <QDebug>
 #include "Prot.h"
 
 class TcpClient : public QObject
@@ -18,6 +19,9 @@ public:
     // Методы для отправки разных типов сообщений на сервер
     void sendSyncCommand();
     void sendIdentificationMessage(const QString &phone);
+
+    // Метод для обработки входящих сообщений
+    void parseMessage(const QByteArray &message);
 
 signals:
     void connected();

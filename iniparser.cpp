@@ -49,6 +49,7 @@ void IniParser::parseIniFile(const QString& filePath)
     }
 
     QTextStream in(&file);
+    in.setCodec("Windows-1251");
 
     QString currentSection;
 
