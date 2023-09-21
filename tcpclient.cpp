@@ -35,6 +35,10 @@ void TcpClient::sendSyncCommand()
     _socket.write(byteArray);
 
     emit dataSent(_currentMessage);
+
+    // Reset Tx Rx
+    _currTx = 0x00;
+    _currRx = 0x80;
 }
 
 void TcpClient::sendIdentificationMessage(const QString &phone)
@@ -67,17 +71,16 @@ void TcpClient::parseMessage(const QByteArray &message)
     // FL_MODBUS_MESSAGE case
     else if (static_cast<unsigned char>(choppedMessage[3]) == 0x6E)
     {
-        memcpy(&modbusMessage, message.constData() + 1, sizeof(FL_MODBUS_MESSAGE));
+        memcpy(&modbusMessage, choppedMessage.constData(), sizeof(FL_MODBUS_MESSAGE));
+        int dataLength = modbusMessage.len;
+        QByteArray data = choppedMessage.mid(sizeof(FL_MODBUS_MESSAGE), dataLength);
+        sendIdentificationMessage();
 
-        qDebug() << hex << modbusMessage.tx_id;
-        qDebug() << hex << modbusMessage.rx_id;
-        qDebug() << hex << modbusMessage.dist_addressMB;
-        qDebug() << hex << modbusMessage.FUNCT;
-        qDebug() << hex << modbusMessage.sour_address;
-        qDebug() << hex << modbusMessage.dist_address;
-        qDebug() << hex << modbusMessage.command;
-        qDebug() << hex << modbusMessage.len;
+        _currTx = modbusMessage.tx_id;
+        _currRx = modbusMessage.rx_id;
     }
+    // FL_MODBUS_MESSAGE_SHORT case
+    // TODO. I don't get the difference between MODBUS_MESSAGE and FL_MODBUS_MESSAGE_SHORT
 }
 
 void TcpClient::onSocketConnected()

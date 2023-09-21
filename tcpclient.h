@@ -40,6 +40,8 @@ private:
     QTcpSocket _socket;
     QByteArray _currentMessage; // Буфер для отправленного сообщения
     QByteArray _receivedMessage; // Буфер для полученного сообщения
+    UCHAR _currTx;
+    UCHAR _currRx;
 };
 
 #endif // TCPCLIENT_H
