@@ -45,6 +45,14 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
         QTableWidgetItem* nameItem = new QTableWidgetItem(device->getName());
         QTableWidgetItem* statusItem = new QTableWidgetItem();
 
+        connect(device, &Device::connected, this, [=]() {
+            statusItem->setText(tr("Подключено"));
+        });
+
+        connect(device, &Device::disconnected, this, [=]() {
+            statusItem->setText(tr("Нет соединения"));
+        });
+
         if (device->isConnected())
         {
             statusItem->setText(tr("Подключено"));
@@ -59,14 +67,6 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
         ui->tableWidget->setItem(row, 2, statusItem);
 
         ++row;
-
-        connect(device, &Device::connected, this, [=]() {
-            statusItem->setText(tr("Подключено"));
-        });
-
-        connect(device, &Device::disconnected, this, [=]() {
-            statusItem->setText(tr("Нет соединения"));
-        });
     }
 }
 

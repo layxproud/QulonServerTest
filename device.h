@@ -2,8 +2,8 @@
 #define DEVICE_H
 
 #include <QObject>
-#include <QTcpSocket>
 #include "logger.h"
+#include "tcpclient.h"
 
 class Device : public QObject
 {
@@ -23,14 +23,13 @@ public:
 signals:
     void connected();
     void disconnected();
-    void identificationMessageSent();
 
 private slots:
-    void onSocketConnected();
-    void onSocketDisconnected();
-    void onSocketReadyRead();
-    void onSocketError(QAbstractSocket::SocketError socketError);
-    void onSocketBytesWritten(qint64 bytes);
+    void onConnected();
+    void onDisconnected();
+    void onDataReceived(const QByteArray &data);
+    void onDataSent(const QByteArray &data);
+    void onError(const QString &errorString);
 
 private:
     // ini file variables
@@ -42,8 +41,8 @@ private:
     Logger *loggerInstance;
 
     // Network variables
-    QTcpSocket _socket;
     QByteArray _currentMessage; // Буфер для текущего сообщения
+    TcpClient _client;
 
 private:
     void setLogger(Logger *logger);
