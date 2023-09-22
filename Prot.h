@@ -92,8 +92,9 @@ struct FL_MODBUS_PROT_ID_CMD_MESSAGE
     char phone[16];
 };
 
-void CalculateCRC(const FL_MODBUS_MESSAGE& mm, const std::vector<UCHAR>& data, UCHAR crc[2]);
-void CalculateCRC(std::vector<UCHAR> &msg);
+void CalculateCRC(const FL_MODBUS_MESSAGE& mm, const QByteArray& data, UCHAR crc[2]);
+
+void CalculateCRC(QByteArray &msg);
 
 #define PROT_VERSION				0x0204
 

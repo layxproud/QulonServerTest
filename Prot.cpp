@@ -1,10 +1,9 @@
 #include "Prot.h"
 
-void CalculateCRC(const FL_MODBUS_MESSAGE& mm, const std::vector<UCHAR>& data, UCHAR crc[2])
+void CalculateCRC(const FL_MODBUS_MESSAGE &mm, const QByteArray &data, UCHAR crc[2])
 {
     UCHAR c, CRChi, CRClo;
     CRChi = CRClo = 0xFF;
-
 
     if(mm.FUNCT == 0x6E)
     {
@@ -41,7 +40,7 @@ void CalculateCRC(const FL_MODBUS_MESSAGE& mm, const std::vector<UCHAR>& data, U
     crc[1] = CRChi;
 }
 
-void CalculateCRC(std::vector<UCHAR> &msg)
+void CalculateCRC(QByteArray &msg)
 {
     UCHAR c, CRChi, CRClo;
     CRChi = CRClo = 0xFF;
@@ -54,6 +53,6 @@ void CalculateCRC(std::vector<UCHAR> &msg)
         CRChi = CRC_Table_Lo[c];
     };
 
-    msg.push_back(CRClo);
-    msg.push_back(CRChi);
+    msg.append(CRClo);
+    msg.append(CRChi);
 }

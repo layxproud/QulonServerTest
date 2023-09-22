@@ -21,18 +21,6 @@ public:
 public:
     TcpClient _client;
 
-signals:
-    void connected();
-    void disconnected();
-
-private slots:
-    void onConnected();
-    void onDisconnected();
-    void onDataReceived(const QByteArray &data);
-    void onDataSent(const QByteArray &data);
-    void onError(const QString &errorString);
-    void onNoConnection();
-
 private:
     // ini file variables
     QString _phone;
@@ -43,6 +31,18 @@ private:
 
 private:
     void setLogger(Logger *logger);
+
+private slots:
+    void onConnected();
+    void onDisconnected();
+    void onDataReceived(const QByteArray &data);
+    void onDataSent(const QByteArray &data);
+    void onError(const QString &errorString);
+    void onNoConnection();
+
+signals:
+    void connected();
+    void disconnected();
 };
 
 #endif // DEVICE_H

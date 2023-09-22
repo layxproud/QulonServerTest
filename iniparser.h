@@ -22,14 +22,11 @@ public:
     QMap<QString, Device*> devices;
 
 private:
-    // Logger
     Logger *loggerInstance;
 
 private:
-    QMap<QString, QString> parseSection(QTextStream& in, const QStringList& keys);
-
     void setLogger(Logger *logger);
-
+    QMap<QString, QString> parseSection(QTextStream& in, const QStringList& keys);
 };
 
 #endif // INIPARSER_H

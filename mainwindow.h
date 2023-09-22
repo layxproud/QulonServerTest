@@ -19,13 +19,6 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-private slots:
-    void on_openIniFileAction_triggered();
-
-    void on_connectButton_clicked();
-
-    void on_testButton_clicked();
-
 private:
     Ui::MainWindow *ui;
     IniParser *iniParser;
@@ -33,5 +26,9 @@ private:
 
 private:
     void populateDeviceTable(const QMap<QString, Device*> &devices);
+
+private slots:
+    void on_openIniFileAction_triggered();
+    void on_connectButton_clicked();
 };
 #endif // MAINWINDOW_H

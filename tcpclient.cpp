@@ -46,7 +46,6 @@ void TcpClient::parseMessage(const QByteArray &message)
     FL_MODBUS_MESSAGE modbusMessage;
     QByteArray choppedMessage = message.mid(1, message.size() - 2); // remove the first and last byte (0xC0)
     QByteArray syncMessage = QByteArray::fromHex("00800010"); // the sync message is always these bytes
-    qDebug() << choppedMessage;
 
     // Sync message case
     if (choppedMessage == syncMessage)
@@ -61,6 +60,7 @@ void TcpClient::parseMessage(const QByteArray &message)
         int dataLength = modbusMessage.len;
         QByteArray data = choppedMessage.mid(sizeof(FL_MODBUS_MESSAGE), dataLength);
         QByteArray transformedData = transformData(data);
+        qDebug() << transformedData;
 
         _currTx = modbusMessage.tx_id;
         _currRx = modbusMessage.rx_id;
@@ -74,14 +74,14 @@ void TcpClient::sendSyncCommand()
 {
     checkConnection();
 
-    std::vector<UCHAR> syncData;
-    syncData.push_back(0x00);
-    syncData.push_back(0x80);
+    QByteArray syncData;
+    syncData.append(static_cast<char>(0x00));
+    syncData.append(static_cast<char>(0x80));
     CalculateCRC(syncData);
 
     QByteArray byteArray;
     byteArray.append(static_cast<char>(0xC0));
-    byteArray.append(reinterpret_cast<const char*>(syncData.data()), static_cast<int>(syncData.size()));
+    byteArray.append(syncData);
     byteArray.append(static_cast<char>(0xC0));
 
     _currentMessage = byteArray;
