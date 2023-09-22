@@ -52,6 +52,7 @@ private:
 
 private:
     void checkConnection();
+    QByteArray transformData(const QByteArray &input);
 };
 
 #endif // TCPCLIENT_H

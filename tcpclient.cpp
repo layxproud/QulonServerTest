@@ -96,7 +96,6 @@ void TcpClient::parseMessage(const QByteArray &message)
         int dataLength = modbusMessage.len;
         QByteArray data = choppedMessage.mid(sizeof(FL_MODBUS_MESSAGE), dataLength);
 
-
         _currTx = modbusMessage.tx_id;
         _currRx = modbusMessage.rx_id;
     }
@@ -139,4 +138,30 @@ void TcpClient::checkConnection()
         emit noConnection();
         return;
     }
+}
+
+QByteArray TcpClient::transformData(const QByteArray &input)
+{
+    QByteArray output;
+    output.reserve(input.size() * 2); // Резервируем максимально возможный размер
+
+    for (char byte : input)
+    {
+        if (byte == 0xC0)
+        {
+            output.append(0xDB);
+            output.append(0xDC);
+        }
+        else if (byte == 0xDB)
+        {
+            output.append(0xDB);
+            output.append(0xDD);
+        }
+        else
+        {
+            output.append(byte);
+        }
+    }
+
+    return output;
 }
