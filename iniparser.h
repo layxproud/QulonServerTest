@@ -15,6 +15,7 @@ public:
     explicit IniParser(Logger *logger, QObject *parent = nullptr);
 
     void parseIniFile(const QString &filePath);
+    quint16 getPort();
 
 public:
     QMap<QString, QString> gprsSettings;

@@ -14,11 +14,12 @@ public:
 
     QString getPhone() const;
     QString getName() const;
-    bool isConnected() const;
 
     void connectToServer(const QString &serverAddress, quint16 serverPort);
     void disconnectFromServer();
-    void sendIdentificationMessage();
+
+public:
+    TcpClient _client;
 
 signals:
     void connected();
@@ -30,24 +31,18 @@ private slots:
     void onDataReceived(const QByteArray &data);
     void onDataSent(const QByteArray &data);
     void onError(const QString &errorString);
+    void onNoConnection();
 
 private:
     // ini file variables
     QString _phone;
     QString _name;
-    bool _connected = false;
 
     // Logger
     Logger *loggerInstance;
 
-    // Network variables
-    QByteArray _currentMessage; // Буфер для текущего сообщения
-    TcpClient _client;
-
 private:
     void setLogger(Logger *logger);
-
-    void sendSyncCommand();
 };
 
 #endif // DEVICE_H

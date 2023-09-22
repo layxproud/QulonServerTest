@@ -8,6 +8,7 @@ Device::Device(QObject *parent)
     connect(&_client, &TcpClient::dataSent, this, &Device::onDataSent);
     connect(&_client, &TcpClient::dataReceived, this, &Device::onDataReceived);
     connect(&_client, &TcpClient::errorOccurred, this, &Device::onError);
+    connect(&_client, &TcpClient::noConnection, this, &Device::onNoConnection);
 }
 
 
@@ -17,6 +18,7 @@ Device::Device(const QString &phone, const QString &name, Logger *logger, QObjec
     _phone = phone;
     _name = name;
     setLogger(logger);
+    _client.setPhone(_phone);
 }
 
 
@@ -32,67 +34,21 @@ QString Device::getName() const
 }
 
 
-bool Device::isConnected() const
-{
-    return _connected;
-}
-
-
 void Device::setLogger(Logger *logger)
 {
     loggerInstance = logger;
 }
 
 
-void Device::connectToServer(const QString &serverAddress, quint16 serverPort)
-{
-    _client.connectToServer(serverAddress, serverPort);
-}
-
-
-void Device::disconnectFromServer()
-{
-    _client.disconnectFromServer();
-}
-
-
-void Device::sendSyncCommand()
-{
-    if (!_connected)
-    {
-        loggerInstance->logWarning(tr("Устройство не подключено к серверу!"));
-        return;
-    }
-
-    _client.sendSyncCommand();
-}
-
-
-void Device::sendIdentificationMessage()
-{
-    if (!_connected)
-    {
-        loggerInstance->logWarning(tr("Устройство не подключено к серверу!"));
-        return;
-    }
-
-    _client.sendIdentificationMessage(_phone);
-}
-
-
 void Device::onConnected()
 {
-    _connected = true;
     loggerInstance->logInfo(tr("Устройство с ID ") + _phone + tr(" подключено к серверу. Выполняется синхронизация..."));
     emit connected();
-
-    // sendSyncCommand();
 }
 
 
 void Device::onDisconnected()
 {
-    _connected = false;
     loggerInstance->logInfo(tr("Устройство с ID ") + _phone + tr(" отключилось от сервера."));
     emit disconnected();
 }
@@ -101,8 +57,6 @@ void Device::onDisconnected()
 void Device::onDataReceived(const QByteArray &data)
 {
     loggerInstance->logInfo(tr("Получено сообщение от сервера: ") + loggerInstance->byteArrToStr(data));
-
-    _client.parseMessage(data);
 }
 
 
@@ -115,4 +69,10 @@ void Device::onDataSent(const QByteArray &data)
 void Device::onError(const QString &errorString)
 {
     loggerInstance->logError(tr("Ошибка сокета: ") + errorString);
+}
+
+
+void Device::onNoConnection()
+{
+    loggerInstance->logWarning(tr("Устройство c ID ") + _phone + tr(" не подключено к серверу!"));
 }

@@ -11,6 +11,10 @@ class TcpClient : public QObject
     Q_OBJECT
 public:
     explicit TcpClient(QObject *parent = nullptr);
+    ~TcpClient();
+
+    void setPhone(const QString &phone);
+    bool isConnected() const;
 
     // Методы для подключения и отключения от сервера
     void connectToServer(const QString &serverAddress, quint16 serverPort);
@@ -29,6 +33,7 @@ signals:
     void dataSent(const QByteArray &data);
     void dataReceived(const QByteArray &data);
     void errorOccurred(const QString &errorString);
+    void noConnection();
 
 private slots:
     void onSocketConnected();
@@ -37,11 +42,16 @@ private slots:
     void onSocketError(QAbstractSocket::SocketError socketError);
 
 private:
+    QString _phone;
     QTcpSocket _socket;
+    bool _connected = false;
     QByteArray _currentMessage; // Буфер для отправленного сообщения
     QByteArray _receivedMessage; // Буфер для полученного сообщения
     UCHAR _currTx;
     UCHAR _currRx;
+
+private:
+    void checkConnection();
 };
 
 #endif // TCPCLIENT_H

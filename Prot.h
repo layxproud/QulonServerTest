@@ -1,9 +1,16 @@
 #ifndef PROT_H
 #define PROT_H
 
+#include <QtCore>
 #include <cstddef>
 #include <vector>
-#include <windows.h>
+#ifdef Q_OS_WIN
+    #include <windows.h>
+#elif defined(Q_OS_LINUX)
+    typedef unsigned char UCHAR;
+    typedef unsigned char BYTE;
+#endif
+
 
 static UCHAR CRC_Table_Hi[0x100]= {
     0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40,

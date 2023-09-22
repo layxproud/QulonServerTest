@@ -9,6 +9,22 @@ TcpClient::TcpClient(QObject *parent)
     connect(&_socket, &QTcpSocket::readyRead, this, &TcpClient::onSocketReadyRead);
 }
 
+TcpClient::~TcpClient()
+{
+    if (_socket.state() == QAbstractSocket::ConnectedState)
+        disconnectFromServer();
+}
+
+void TcpClient::setPhone(const QString &phone)
+{
+    _phone = phone;
+}
+
+bool TcpClient::isConnected() const
+{
+    return _connected;
+}
+
 void TcpClient::connectToServer(const QString &serverAddress, quint16 serverPort)
 {
     _socket.connectToHost(serverAddress, serverPort);
@@ -21,6 +37,8 @@ void TcpClient::disconnectFromServer()
 
 void TcpClient::sendSyncCommand()
 {
+    checkConnection();
+
     std::vector<UCHAR> syncData;
     syncData.push_back(0x00);
     syncData.push_back(0x80);
@@ -43,6 +61,8 @@ void TcpClient::sendSyncCommand()
 
 void TcpClient::sendIdentificationMessage(const QString &phone)
 {
+    checkConnection();
+
     FL_MODBUS_PROT_ID_CMD_MESSAGE idMessage;
     memset(&idMessage, 0, sizeof(idMessage));
     strcpy_s(idMessage.phone, phone.toUtf8().constData());
@@ -72,9 +92,10 @@ void TcpClient::parseMessage(const QByteArray &message)
     else if (static_cast<unsigned char>(choppedMessage[3]) == 0x6E)
     {
         memcpy(&modbusMessage, choppedMessage.constData(), sizeof(FL_MODBUS_MESSAGE));
+
         int dataLength = modbusMessage.len;
         QByteArray data = choppedMessage.mid(sizeof(FL_MODBUS_MESSAGE), dataLength);
-        sendIdentificationMessage();
+
 
         _currTx = modbusMessage.tx_id;
         _currRx = modbusMessage.rx_id;
@@ -85,19 +106,22 @@ void TcpClient::parseMessage(const QByteArray &message)
 
 void TcpClient::onSocketConnected()
 {
+    _connected = true;
     emit connected();
 }
 
 void TcpClient::onSocketDisconnected()
 {
+    _connected = false;
     emit disconnected();
 }
 
 void TcpClient::onSocketReadyRead()
 {
     _receivedMessage = _socket.readAll();
-
     emit dataReceived(_receivedMessage);
+
+    parseMessage(_receivedMessage);
 }
 
 void TcpClient::onSocketError(QAbstractSocket::SocketError socketError)
@@ -106,4 +130,13 @@ void TcpClient::onSocketError(QAbstractSocket::SocketError socketError)
     QString errorString = _socket.errorString();
 
     emit errorOccurred(errorString);
+}
+
+void TcpClient::checkConnection()
+{
+    if (!_connected)
+    {
+        emit noConnection();
+        return;
+    }
 }

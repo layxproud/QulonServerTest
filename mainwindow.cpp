@@ -53,7 +53,7 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
             statusItem->setText(tr("Нет соединения"));
         });
 
-        if (device->isConnected())
+        if (device->_client.isConnected())
         {
             statusItem->setText(tr("Подключено"));
         }
@@ -82,6 +82,10 @@ void MainWindow::on_openIniFileAction_triggered()
         iniParser->parseIniFile(filePath);
         populateDeviceTable(iniParser->devices);
     }
+    else
+    {
+        logger->logError(tr("Ошибка открытия файла. Файл пустой или не существует."));
+    }
 }
 
 
@@ -101,7 +105,7 @@ void MainWindow::on_connectButton_clicked()
         if (iniParser->devices.contains(phoneNumber))
         {
             Device* device = iniParser->devices.value(phoneNumber);
-            device->connectToServer("127.0.0.1", 20000);
+            device->_client.connectToServer(iniParser->gprsSettings["ip"], iniParser->getPort());
         }
         else
         {

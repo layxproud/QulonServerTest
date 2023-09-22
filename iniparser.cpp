@@ -49,7 +49,11 @@ void IniParser::parseIniFile(const QString& filePath)
     }
 
     QTextStream in(&file);
+#ifdef Q_OS_WIN
     in.setCodec("Windows-1251");
+#elif defined(Q_OS_LINUX)
+    in.setCodec("UTF-8");
+#endif
 
     QString currentSection;
 
@@ -87,4 +91,12 @@ void IniParser::parseIniFile(const QString& filePath)
     }
 
     file.close();
+}
+
+quint16 IniParser::getPort()
+{
+    bool ok; // Флаг для проверки успешного преобразования строки в число
+    QString portStr = gprsSettings["port"];
+    quint16 port = portStr.toUInt(&ok);
+    return port;
 }
