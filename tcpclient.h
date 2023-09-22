@@ -20,26 +20,8 @@ public:
     void connectToServer(const QString &serverAddress, quint16 serverPort);
     void disconnectFromServer();
 
-    // Методы для отправки разных типов сообщений на сервер
-    void sendSyncCommand();
-    void sendIdentificationMessage(const QString &phone);
-
     // Метод для обработки входящих сообщений
     void parseMessage(const QByteArray &message);
-
-signals:
-    void connected();
-    void disconnected();
-    void dataSent(const QByteArray &data);
-    void dataReceived(const QByteArray &data);
-    void errorOccurred(const QString &errorString);
-    void noConnection();
-
-private slots:
-    void onSocketConnected();
-    void onSocketDisconnected();
-    void onSocketReadyRead();
-    void onSocketError(QAbstractSocket::SocketError socketError);
 
 private:
     QString _phone;
@@ -51,8 +33,30 @@ private:
     UCHAR _currRx;
 
 private:
-    void checkConnection();
+    // Методы для отправки разных типов сообщений на сервер
+    void sendSyncCommand();
+    void sendIdentificationMessage(const QString &phone);
+
+    // Метод обработки данных согласно протоколу модбас
     QByteArray transformData(const QByteArray &input);
+
+    // Остальные методы
+    void checkConnection();
+
+private slots:
+    void onSocketConnected();
+    void onSocketDisconnected();
+    void onSocketReadyRead();
+    void onSocketError(QAbstractSocket::SocketError socketError);
+
+signals:
+    void connected();
+    void disconnected();
+    void dataSent(const QByteArray &data);
+    void dataReceived(const QByteArray &data);
+    void errorOccurred(const QString &errorString);
+    void noConnection();
+
 };
 
 #endif // TCPCLIENT_H

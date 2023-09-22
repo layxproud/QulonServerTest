@@ -9,31 +9,66 @@ TcpClient::TcpClient(QObject *parent)
     connect(&_socket, &QTcpSocket::readyRead, this, &TcpClient::onSocketReadyRead);
 }
 
+
 TcpClient::~TcpClient()
 {
     if (_socket.state() == QAbstractSocket::ConnectedState)
         disconnectFromServer();
 }
 
+
 void TcpClient::setPhone(const QString &phone)
 {
     _phone = phone;
 }
+
 
 bool TcpClient::isConnected() const
 {
     return _connected;
 }
 
+
 void TcpClient::connectToServer(const QString &serverAddress, quint16 serverPort)
 {
     _socket.connectToHost(serverAddress, serverPort);
 }
 
+
 void TcpClient::disconnectFromServer()
 {
     _socket.disconnectFromHost();
 }
+
+
+void TcpClient::parseMessage(const QByteArray &message)
+{
+    FL_MODBUS_MESSAGE modbusMessage;
+    QByteArray choppedMessage = message.mid(1, message.size() - 2); // remove the first and last byte (0xC0)
+    QByteArray syncMessage = QByteArray::fromHex("00800010"); // the sync message is always these bytes
+    qDebug() << choppedMessage;
+
+    // Sync message case
+    if (choppedMessage == syncMessage)
+    {
+        sendSyncCommand();
+    }
+    // FL_MODBUS_MESSAGE case
+    else if (static_cast<unsigned char>(choppedMessage[3]) == 0x6E)
+    {
+        memcpy(&modbusMessage, choppedMessage.constData(), sizeof(FL_MODBUS_MESSAGE));
+
+        int dataLength = modbusMessage.len;
+        QByteArray data = choppedMessage.mid(sizeof(FL_MODBUS_MESSAGE), dataLength);
+        QByteArray transformedData = transformData(data);
+
+        _currTx = modbusMessage.tx_id;
+        _currRx = modbusMessage.rx_id;
+    }
+    // FL_MODBUS_MESSAGE_SHORT case
+    // TODO. I don't get the difference between MODBUS_MESSAGE and FL_MODBUS_MESSAGE_SHORT
+}
+
 
 void TcpClient::sendSyncCommand()
 {
@@ -59,6 +94,7 @@ void TcpClient::sendSyncCommand()
     _currRx = 0x80;
 }
 
+
 void TcpClient::sendIdentificationMessage(const QString &phone)
 {
     checkConnection();
@@ -76,76 +112,13 @@ void TcpClient::sendIdentificationMessage(const QString &phone)
     emit dataSent(_currentMessage);
 }
 
-void TcpClient::parseMessage(const QByteArray &message)
-{
-    FL_MODBUS_MESSAGE modbusMessage;
-    QByteArray choppedMessage = message.mid(1, message.size() - 2); // remove the first and last byte (0xC0)
-    QByteArray syncMessage = QByteArray::fromHex("00800010"); // the sync message is always these bytes
-    qDebug() << choppedMessage;
-
-    // Sync message case
-    if (choppedMessage == syncMessage)
-    {
-        sendSyncCommand();
-    }
-    // FL_MODBUS_MESSAGE case
-    else if (static_cast<unsigned char>(choppedMessage[3]) == 0x6E)
-    {
-        memcpy(&modbusMessage, choppedMessage.constData(), sizeof(FL_MODBUS_MESSAGE));
-
-        int dataLength = modbusMessage.len;
-        QByteArray data = choppedMessage.mid(sizeof(FL_MODBUS_MESSAGE), dataLength);
-
-        _currTx = modbusMessage.tx_id;
-        _currRx = modbusMessage.rx_id;
-    }
-    // FL_MODBUS_MESSAGE_SHORT case
-    // TODO. I don't get the difference between MODBUS_MESSAGE and FL_MODBUS_MESSAGE_SHORT
-}
-
-void TcpClient::onSocketConnected()
-{
-    _connected = true;
-    emit connected();
-}
-
-void TcpClient::onSocketDisconnected()
-{
-    _connected = false;
-    emit disconnected();
-}
-
-void TcpClient::onSocketReadyRead()
-{
-    _receivedMessage = _socket.readAll();
-    emit dataReceived(_receivedMessage);
-
-    parseMessage(_receivedMessage);
-}
-
-void TcpClient::onSocketError(QAbstractSocket::SocketError socketError)
-{
-    Q_UNUSED(socketError);
-    QString errorString = _socket.errorString();
-
-    emit errorOccurred(errorString);
-}
-
-void TcpClient::checkConnection()
-{
-    if (!_connected)
-    {
-        emit noConnection();
-        return;
-    }
-}
 
 QByteArray TcpClient::transformData(const QByteArray &input)
 {
     QByteArray output;
     output.reserve(input.size() * 2); // Резервируем максимально возможный размер
 
-    for (char byte : input)
+    for (unsigned char byte : input)
     {
         if (byte == 0xC0)
         {
@@ -164,4 +137,46 @@ QByteArray TcpClient::transformData(const QByteArray &input)
     }
 
     return output;
+}
+
+
+void TcpClient::checkConnection()
+{
+    if (!_connected)
+    {
+        emit noConnection();
+        return;
+    }
+}
+
+
+void TcpClient::onSocketConnected()
+{
+    _connected = true;
+    emit connected();
+}
+
+
+void TcpClient::onSocketDisconnected()
+{
+    _connected = false;
+    emit disconnected();
+}
+
+
+void TcpClient::onSocketReadyRead()
+{
+    _receivedMessage = _socket.readAll();
+    emit dataReceived(_receivedMessage);
+
+    parseMessage(_receivedMessage);
+}
+
+
+void TcpClient::onSocketError(QAbstractSocket::SocketError socketError)
+{
+    Q_UNUSED(socketError);
+    QString errorString = _socket.errorString();
+
+    emit errorOccurred(errorString);
 }
