@@ -16,31 +16,26 @@ public:
     void setPhone(const QString &phone);
     bool isConnected() const;
 
-    // Методы для подключения и отключения от сервера
     void connectToServer(const QString &serverAddress, quint16 serverPort);
     void disconnectFromServer();
 
-    // Метод для обработки входящих сообщений
     void parseMessage(const QByteArray &message);
 
 private:
     QString _phone;
     QTcpSocket _socket;
     bool _connected = false;
-    QByteArray _currentMessage; // Буфер для отправленного сообщения
-    QByteArray _receivedMessage; // Буфер для полученного сообщения
+    QByteArray _currentMessage;
+    QByteArray _receivedMessage;
     UCHAR _currTx;
     UCHAR _currRx;
 
 private:
-    // Методы для отправки разных типов сообщений на сервер
+    void performCommand(const QByteArray &message, const QByteArray &data);
     void sendSyncCommand();
-    void sendIdentificationMessage(const QString &phone);
+    void sendIdentificationMessage(const QByteArray &message);
 
-    // Метод обработки данных согласно протоколу модбас
     QByteArray transformData(const QByteArray &input);
-
-    // Остальные методы
     void checkConnection();
 
 private slots:
@@ -56,6 +51,9 @@ signals:
     void dataReceived(const QByteArray &data);
     void errorOccurred(const QString &errorString);
     void noConnection();
+    void wrongCRC(const UCHAR &expected1, const UCHAR &received1,
+                  const UCHAR &expected2, const UCHAR &received2);
+    void wrongRx(const UCHAR &expected, const UCHAR &received);
 
 };
 

@@ -10,6 +10,9 @@ MainWindow::MainWindow(QWidget *parent)
     logger = new Logger(this);
     logger->setLogWindow(ui->logWindow);
     iniParser = new IniParser(logger, this);
+
+    ui->connectIntervalBox->setValue(1);
+    ui->disconnectIntervalBox->setValue(20);
 }
 
 MainWindow::~MainWindow()
@@ -40,6 +43,8 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
     foreach (const QString &phone, devices.keys())
     {
         Device* device = devices.value(phone);
+        device->setIp(iniParser->gprsSettings["ip"]);
+        device->setPort(iniParser->getPort());
 
         QTableWidgetItem* phoneItem = new QTableWidgetItem(device->getPhone());
         QTableWidgetItem* nameItem = new QTableWidgetItem(device->getName());
@@ -81,6 +86,8 @@ void MainWindow::on_openIniFileAction_triggered()
     {
         iniParser->parseIniFile(filePath);
         populateDeviceTable(iniParser->devices);
+        ui->ipValue->setText(iniParser->gprsSettings["ip"]);
+        ui->portValue->setText(iniParser->gprsSettings["port"]);
     }
     else
     {
@@ -111,6 +118,33 @@ void MainWindow::on_connectButton_clicked()
         {
             logger->logWarning(tr("Устройство с номером ") + phoneNumber + tr(" не найдено в списке."));
         }
+    }
+}
+
+
+void MainWindow::on_pushButton_clicked()
+{
+    foreach (Device* device, iniParser->devices)
+    {
+        device->startConnectionTimer();
+    }
+}
+
+
+void MainWindow::on_connectIntervalBox_valueChanged(int arg1)
+{
+    foreach (Device* device, iniParser->devices)
+    {
+        device->setConnectionInterval(arg1);
+    }
+}
+
+
+void MainWindow::on_disconnectIntervalBox_valueChanged(int arg1)
+{
+    foreach (Device* device, iniParser->devices)
+    {
+        device->setDisconnectionInterval(arg1);
     }
 }
 

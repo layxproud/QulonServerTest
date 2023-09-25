@@ -30,5 +30,8 @@ private:
 private slots:
     void on_openIniFileAction_triggered();
     void on_connectButton_clicked();
+    void on_pushButton_clicked();
+    void on_connectIntervalBox_valueChanged(int arg1);
+    void on_disconnectIntervalBox_valueChanged(int arg1);
 };
 #endif // MAINWINDOW_H

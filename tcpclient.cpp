@@ -43,30 +43,61 @@ void TcpClient::disconnectFromServer()
 
 void TcpClient::parseMessage(const QByteArray &message)
 {
-    FL_MODBUS_MESSAGE modbusMessage;
-    QByteArray choppedMessage = message.mid(1, message.size() - 2); // remove the first and last byte (0xC0)
     QByteArray syncMessage = QByteArray::fromHex("00800010"); // the sync message is always these bytes
+    QByteArray choppedMessage = message.mid(1, message.size() - 2); // remove the first and last byte (0xC0)
 
     // Sync message case
     if (choppedMessage == syncMessage)
     {
         sendSyncCommand();
     }
+
     // FL_MODBUS_MESSAGE case
     else if (static_cast<unsigned char>(choppedMessage[3]) == 0x6E)
     {
+        // HEADER
+        FL_MODBUS_MESSAGE modbusMessage;
         memcpy(&modbusMessage, choppedMessage.constData(), sizeof(FL_MODBUS_MESSAGE));
 
+        // DATA
         int dataLength = modbusMessage.len;
-        QByteArray data = choppedMessage.mid(sizeof(FL_MODBUS_MESSAGE), dataLength);
-        QByteArray transformedData = transformData(data);
-        qDebug() << transformedData;
+        QByteArray rawData = choppedMessage.mid(sizeof(FL_MODBUS_MESSAGE), dataLength);
+        QByteArray data = transformData(rawData);
 
-        _currTx = modbusMessage.tx_id;
-        _currRx = modbusMessage.rx_id;
+        // CRC
+        UCHAR crc[2];
+        CalculateCRC(modbusMessage, data, crc);
+        if ((crc[1] != choppedMessage.at(choppedMessage.size() - 1)) &&
+            (crc[0] != choppedMessage.at(choppedMessage.size() - 2)))
+        {
+            emit wrongCRC(choppedMessage.at(choppedMessage.size() - 1), crc[1],
+                    choppedMessage.at(choppedMessage.size() - 2), crc[0]);
+        }
+
+        // Check Rx
+        if (_currRx != modbusMessage.rx_id)
+        {
+            emit wrongRx(_currRx, modbusMessage.rx_id);
+        }
+
+        performCommand(choppedMessage, data);
     }
     // FL_MODBUS_MESSAGE_SHORT case
     // TODO. I don't get the difference between MODBUS_MESSAGE and FL_MODBUS_MESSAGE_SHORT
+}
+
+
+void TcpClient::performCommand(const QByteArray &message, const QByteArray &data)
+{
+    switch (message[6])
+    {
+    case PROT_ID_CMD:
+        sendIdentificationMessage(message);
+        break;
+
+    default:
+        break;
+    }
 }
 
 
@@ -91,23 +122,61 @@ void TcpClient::sendSyncCommand()
 
     // Reset Tx Rx
     _currTx = 0x00;
-    _currRx = 0x80;
+    _currRx = 0x00;
 }
 
 
-void TcpClient::sendIdentificationMessage(const QString &phone)
+void TcpClient::sendIdentificationMessage(const QByteArray &message)
 {
     checkConnection();
 
+    UCHAR crc[2];
+
+    // DATA
+    // For now it's hardcoded data.
     FL_MODBUS_PROT_ID_CMD_MESSAGE idMessage;
-    memset(&idMessage, 0, sizeof(idMessage));
-    strcpy_s(idMessage.phone, phone.toUtf8().constData());
+    idMessage.protocol_version[0] = static_cast<UCHAR>(0x02);
+    idMessage.protocol_version[1] = static_cast<UCHAR>(0x0A);
+    idMessage.device_type = static_cast<UCHAR>(0x46);
+    idMessage.validity = static_cast<UCHAR>(0x01);
+    idMessage.config_version[0] = static_cast<UCHAR>(0xCE);
+    idMessage.config_version[1] = static_cast<UCHAR>(0xCE);
+    idMessage.firmware_version[0] = static_cast<UCHAR>(0x01);
+    idMessage.firmware_version[1] = static_cast<UCHAR>(0x33);
+    memset(idMessage.phone, 0, sizeof(idMessage.phone));
+    memcpy(idMessage.phone, _phone.toUtf8().constData(), _phone.toUtf8().size());
+    QByteArray rawData(reinterpret_cast<const char*>(&idMessage), sizeof(idMessage));
+    QByteArray data(transformData(rawData));
+    qDebug() << data;
+
+    // HEADER
+    FL_MODBUS_MESSAGE modbusMessage;
+    modbusMessage.tx_id = message[0];
+    modbusMessage.rx_id = _currRx + 0x01;
+    modbusMessage.dist_addressMB = message[2];
+    modbusMessage.FUNCT = message[3];
+    modbusMessage.sour_address = message[5];
+    modbusMessage.dist_address = message[4];
+    modbusMessage.command = PROT_ID_OK;
+    modbusMessage.len = static_cast<unsigned char>(data.size());
+    QByteArray header(reinterpret_cast<const char*>(&modbusMessage), sizeof(modbusMessage));
+
+    CalculateCRC(modbusMessage, data, crc);
 
     QByteArray byteArray;
-    byteArray.append(reinterpret_cast<char*>(&idMessage), sizeof(idMessage));
+    byteArray.append(static_cast<char>(0xC0));
+    byteArray.append(header);
+    byteArray.append(data);
+    byteArray.append(crc[0]);
+    byteArray.append(crc[1]);
+    byteArray.append(static_cast<char>(0xC0));
 
     _currentMessage = byteArray;
     _socket.write(byteArray);
+
+    // Update Tx Rx. For example, if we received Rx = 00, then we send Rx = 01 and wait for Rx = 01
+    _currTx = modbusMessage.tx_id;
+    _currRx = modbusMessage.rx_id;
 
     emit dataSent(_currentMessage);
 }
@@ -116,19 +185,19 @@ void TcpClient::sendIdentificationMessage(const QString &phone)
 QByteArray TcpClient::transformData(const QByteArray &input)
 {
     QByteArray output;
-    output.reserve(input.size() * 2); // Резервируем максимально возможный размер
+    output.reserve(input.size() * 2);
 
     for (unsigned char byte : input)
     {
         if (byte == 0xC0)
         {
-            output.append(0xDB);
-            output.append(0xDC);
+            output.append(static_cast<char>(0xDB));
+            output.append(static_cast<char>(0xDC));
         }
         else if (byte == 0xDB)
         {
-            output.append(0xDB);
-            output.append(0xDD);
+            output.append(static_cast<char>(0xDB));
+            output.append(static_cast<char>(0xDD));
         }
         else
         {

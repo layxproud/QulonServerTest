@@ -2,6 +2,7 @@
 #define DEVICE_H
 
 #include <QObject>
+#include <QTimer>
 #include "logger.h"
 #include "tcpclient.h"
 
@@ -15,19 +16,29 @@ public:
     QString getPhone() const;
     QString getName() const;
 
-    void connectToServer(const QString &serverAddress, quint16 serverPort);
-    void disconnectFromServer();
+    void setIp(const QString &ip);
+    void setPort(const quint16 &port);
+    void setConnectionInterval(const int &interval);
+    void setDisconnectionInterval(const int &interval);
+
+    void startConnectionTimer();
+    void startDisconnectionTimer();
 
 public:
     TcpClient _client;
 
 private:
-    // ini file variables
     QString _phone;
     QString _name;
+    QString _ip;
+    quint16 _port;
 
-    // Logger
     Logger *loggerInstance;
+
+    QTimer *connectionTimer;
+    QTimer *disconnectionTimer;
+    int _connectionInterval = 1;
+    int _disconnectionInterval = 20;
 
 private:
     void setLogger(Logger *logger);
@@ -39,6 +50,12 @@ private slots:
     void onDataSent(const QByteArray &data);
     void onError(const QString &errorString);
     void onNoConnection();
+    void onWrongCRC(const UCHAR &expected1, const UCHAR &received1,
+                    const UCHAR &expected2, const UCHAR &received2);
+    void onWrongRx(const UCHAR &expected, const UCHAR &received);
+
+    void onConnectionTimerTimeout();
+    void onDisconnectionTimerTimeout();
 
 signals:
     void connected();

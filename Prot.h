@@ -88,7 +88,11 @@ struct MODBUS_MESSAGE
 
 struct FL_MODBUS_PROT_ID_CMD_MESSAGE
 {
-    BYTE info[8];
+    UCHAR protocol_version[2];
+    UCHAR device_type;
+    UCHAR validity;
+    UCHAR config_version[2];
+    UCHAR firmware_version[2];
     char phone[16];
 };
 

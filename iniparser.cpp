@@ -95,7 +95,7 @@ void IniParser::parseIniFile(const QString& filePath)
 
 quint16 IniParser::getPort()
 {
-    bool ok; // Флаг для проверки успешного преобразования строки в число
+    bool ok;
     QString portStr = gprsSettings["port"];
     quint16 port = portStr.toUInt(&ok);
     return port;
