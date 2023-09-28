@@ -37,6 +37,7 @@ private:
 private:
     void populateDeviceTable(const QMap<QString, Device*> &devices);
     void updateIntervals();
+    void enableSpinBoxes(const bool &arg);
 
 private slots:
     void updateStatus(QTableWidgetItem* item, const QString &status);

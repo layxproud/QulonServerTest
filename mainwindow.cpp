@@ -86,6 +86,18 @@ void MainWindow::updateIntervals()
     }
 }
 
+void MainWindow::enableSpinBoxes(const bool &arg)
+{
+    ui->conIntMinBox->setEnabled(arg);
+    ui->conIntSecBox->setEnabled(arg);
+    ui->discIntFromMinBox->setEnabled(arg);
+    ui->discIntFromSecBox->setEnabled(arg);
+    ui->discIntToMinBox->setEnabled(arg);
+    ui->discIntToSecBox->setEnabled(arg);
+    ui->statusIntMinBox->setEnabled(arg);
+    ui->statusIntSecBox->setEnabled(arg);
+}
+
 
 void MainWindow::updateStatus(QTableWidgetItem *item, const QString &status)
 {
@@ -160,27 +172,11 @@ void MainWindow::on_saveValuesCheck_stateChanged(int arg1)
 {
     if (arg1 == Qt::Checked)
     {
-        ui->conIntMinBox->setEnabled(false);
-        ui->conIntSecBox->setEnabled(false);
-        ui->discIntFromMinBox->setEnabled(false);
-        ui->discIntFromSecBox->setEnabled(false);
-        ui->discIntToMinBox->setEnabled(false);
-        ui->discIntToSecBox->setEnabled(false);
-        ui->statusIntMinBox->setEnabled(false);
-        ui->statusIntSecBox->setEnabled(false);
-
+        enableSpinBoxes(false);
         updateIntervals();
     }
     else if (arg1 == Qt::Unchecked)
     {
-        ui->conIntMinBox->setEnabled(true);
-        ui->conIntSecBox->setEnabled(true);
-        ui->discIntFromMinBox->setEnabled(true);
-        ui->discIntFromSecBox->setEnabled(true);
-        ui->discIntToMinBox->setEnabled(true);
-        ui->discIntToSecBox->setEnabled(true);
-        ui->statusIntMinBox->setEnabled(true);
-        ui->statusIntSecBox->setEnabled(true);
+        enableSpinBoxes(true);
     }
 }
-

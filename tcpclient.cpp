@@ -182,12 +182,9 @@ void TcpClient::sendIdentificationMessage()
     FL_MODBUS_MESSAGE modbusMessage;
     modbusMessage.tx_id = _currTx + 0x01;
     modbusMessage.rx_id = _currRx + 0x01;
-    // modbusMessage.dist_addressMB = message[2];
     modbusMessage.dist_addressMB = _myAddr;
     modbusMessage.FUNCT = 0x6E;
-    // modbusMessage.sour_address = message[5];
     modbusMessage.sour_address = _myAddr;
-    // modbusMessage.dist_address = message[4];
     modbusMessage.dist_address = _serverAddr;
     modbusMessage.command = PROT_ID_OK;
     modbusMessage.len = static_cast<unsigned char>(data.size());
@@ -231,12 +228,9 @@ void TcpClient::sendState(const bool &outsideCall)
     else
         modbusMessage.tx_id = _currTx + 0x01;
     modbusMessage.rx_id = _currRx + 0x01;
-    // modbusMessage.dist_addressMB = message[2];
     modbusMessage.dist_addressMB = _myAddr;
     modbusMessage.FUNCT = 0x6E;
-    // modbusMessage.sour_address = message[5];
     modbusMessage.sour_address = _myAddr;
-    // modbusMessage.dist_address = message[4];
     modbusMessage.dist_address = _serverAddr;
     modbusMessage.command = PROT_STATE_REQ_OK;
     modbusMessage.len = static_cast<unsigned char>(data.size());
