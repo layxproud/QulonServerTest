@@ -12,6 +12,7 @@ class Device : public QObject
 public:
     explicit Device(QObject *parent = nullptr);
     Device(const QString &phone, const QString &name, Logger *logger, QObject *parent = nullptr);
+    ~Device();
 
     QString getPhone() const;
     QString getName() const;
@@ -32,6 +33,7 @@ private:
     QString _name;
     QString _ip;
     quint16 _port;
+    int _phoneId;
 
     Logger *loggerInstance;
 
@@ -42,6 +44,7 @@ private:
 
 private:
     void setLogger(Logger *logger);
+    int phoneToId();
 
 private slots:
     void onConnected();
@@ -49,10 +52,12 @@ private slots:
     void onDataReceived(const QByteArray &data);
     void onDataSent(const QByteArray &data);
     void onError(const QString &errorString);
+    void onUnknownCommand(const UCHAR &command);
     void onNoConnection();
+    void onReplyError();
     void onWrongCRC(const UCHAR &expected1, const UCHAR &received1,
                     const UCHAR &expected2, const UCHAR &received2);
-    void onWrongRx(const UCHAR &expected, const UCHAR &received);
+    void onWrongTx(const UCHAR &expected, const UCHAR &received);
 
     void onConnectionTimerTimeout();
     void onDisconnectionTimerTimeout();

@@ -17,6 +17,8 @@ public:
     void parseIniFile(const QString &filePath);
     quint16 getPort();
 
+    void clearData();
+
 public:
     QMap<QString, QString> gprsSettings;
     QMap<QString, Device*> devices;

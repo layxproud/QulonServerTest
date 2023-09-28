@@ -1,4 +1,6 @@
 #include "device.h"
+#include <sstream>
+#include <iomanip>
 
 Device::Device(QObject *parent)
     : QObject{parent}
@@ -10,7 +12,9 @@ Device::Device(QObject *parent)
     connect(&_client, &TcpClient::errorOccurred, this, &Device::onError);
     connect(&_client, &TcpClient::noConnection, this, &Device::onNoConnection);
     connect(&_client, &TcpClient::wrongCRC, this, &Device::onWrongCRC);
-    connect(&_client, &TcpClient::wrongRx, this, &Device::onWrongRx);
+    connect(&_client, &TcpClient::wrongTx, this, &Device::onWrongTx);
+    connect(&_client, &TcpClient::unknownCommand, this, &Device::onUnknownCommand);
+    connect(&_client, &TcpClient::replyError, this, &Device::onReplyError);
 }
 
 
@@ -27,6 +31,15 @@ Device::Device(const QString &phone, const QString &name, Logger *logger, QObjec
     connect(disconnectionTimer, &QTimer::timeout, this, &Device::onDisconnectionTimerTimeout);
 
     _client.setPhone(_phone);
+    _phoneId = phoneToId();
+}
+
+Device::~Device()
+{
+    if (_client.isConnected())
+    {
+        _client.disconnectFromServer();
+    }
 }
 
 
@@ -63,13 +76,16 @@ void Device::setDisconnectionInterval(const int &interval)
 
 void Device::startConnectionTimer()
 {
-    int randomInterval = qrand() % ((_connectionInterval * 60 * 1000) + 1);
+    QRandomGenerator randomGenerator(_phoneId);
+    int randomInterval = randomGenerator.generate() % ((_connectionInterval * 60 * 1000) + 1);
     connectionTimer->start(randomInterval);
 }
 
 void Device::startDisconnectionTimer()
 {
-    int randomInterval = qrand() % ((_disconnectionInterval * 60 * 1000) + 1);
+    QRandomGenerator randomGenerator(_phoneId);
+    int randomInterval = randomGenerator.bounded((_disconnectionInterval / 2) * 60 * 1000,
+                                                 _disconnectionInterval * 60 * 1000);
     disconnectionTimer->start(randomInterval);
 }
 
@@ -77,6 +93,21 @@ void Device::startDisconnectionTimer()
 void Device::setLogger(Logger *logger)
 {
     loggerInstance = logger;
+}
+
+int Device::phoneToId()
+{
+    int deviceId = 0;
+
+    for (int i = 0; i < _phone.length(); ++i)
+    {
+        // Получите ASCII-код символа
+        int asciiValue = _phone.at(i).toLatin1();
+
+        // Сдвиньте текущее численное представление на 8 бит и добавьте значение ASCII-кода
+        deviceId = (deviceId << 8) | asciiValue;
+    }
+    return deviceId;
 }
 
 
@@ -111,22 +142,42 @@ void Device::onError(const QString &errorString)
     loggerInstance->logError(tr("Ошибка сокета: ") + errorString);
 }
 
+void Device::onUnknownCommand(const UCHAR &command)
+{
+    QString commandString = QString("0x%1").arg(command, 2, 16, QChar('0'));
+    loggerInstance->logWarning(tr("Встречена незнакомая команда: ") + commandString + tr(" Отправляю стандартный ответ..."));
+}
+
 
 void Device::onNoConnection()
 {
     loggerInstance->logWarning(tr("Устройство c ID ") + _phone + tr(" не подключено к серверу!"));
 }
 
-void Device::onWrongCRC(const UCHAR &expected1, const UCHAR &received1, const UCHAR &expected2, const UCHAR &received2)
+void Device::onReplyError()
 {
-    loggerInstance->logError(tr("Неправильная контрольная сумма. Ожидалось: ") + expected1 + expected2
-                             + tr(" | Получено: ") + received1 + received2);
+    loggerInstance->logError(tr("Сервер сообщил о возникшей ошибке"));
 }
 
-void Device::onWrongRx(const UCHAR &expected, const UCHAR &received)
+void Device::onWrongCRC(const UCHAR &expected1, const UCHAR &received1, const UCHAR &expected2, const UCHAR &received2)
 {
-    loggerInstance->logWarning(tr("Rx не совпадает. Ожидалось: ") + expected
-                               + tr(" | Получено: ") + received);
+    {
+        QString message = tr("Неправильная контрольная сумма. Ожидалось: %1%2 | Получено: %3%4")
+            .arg(QString::number(expected1, 16).rightJustified(2, '0'))
+            .arg(QString::number(expected2, 16).rightJustified(2, '0'))
+            .arg(QString::number(received1, 16).rightJustified(2, '0'))
+            .arg(QString::number(received2, 16).rightJustified(2, '0'));
+
+        loggerInstance->logError(message);
+    }
+}
+void Device::onWrongTx(const UCHAR &expected, const UCHAR &received)
+{
+    QString message = tr("Tx Rx не совпадают. Ожидалось: %1 | Получено: %2")
+        .arg(QString::number(expected, 16).rightJustified(2, '0'))
+        .arg(QString::number(received, 16).rightJustified(2, '0'));
+
+    loggerInstance->logError(message);
 }
 
 void Device::onConnectionTimerTimeout()

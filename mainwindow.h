@@ -24,8 +24,11 @@ private:
     IniParser *iniParser;
     Logger *logger;
 
+    QList<Device*> deviceList;
+
 private:
     void populateDeviceTable(const QMap<QString, Device*> &devices);
+    void cleanupDevices();
 
 private slots:
     void on_openIniFileAction_triggered();

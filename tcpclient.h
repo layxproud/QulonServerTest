@@ -19,7 +19,7 @@ public:
     void connectToServer(const QString &serverAddress, quint16 serverPort);
     void disconnectFromServer();
 
-    void parseMessage(const QByteArray &message);
+    void parseMessage(const QByteArray &rawMessage);
 
 private:
     QString _phone;
@@ -34,8 +34,11 @@ private:
     void performCommand(const QByteArray &message, const QByteArray &data);
     void sendSyncCommand();
     void sendIdentificationMessage(const QByteArray &message);
+    void sendState(const QByteArray &message);
+    void sendDefaultResponce(const QByteArray &message);
 
-    QByteArray transformData(const QByteArray &input);
+    QByteArray transformToData(const QByteArray &input);
+    QByteArray transformToRaw(const QByteArray &input);
     void checkConnection();
 
 private slots:
@@ -50,10 +53,12 @@ signals:
     void dataSent(const QByteArray &data);
     void dataReceived(const QByteArray &data);
     void errorOccurred(const QString &errorString);
+    void unknownCommand(const UCHAR &command);
+    void replyError();
     void noConnection();
     void wrongCRC(const UCHAR &expected1, const UCHAR &received1,
                   const UCHAR &expected2, const UCHAR &received2);
-    void wrongRx(const UCHAR &expected, const UCHAR &received);
+    void wrongTx(const UCHAR &expected, const UCHAR &received);
 
 };
 

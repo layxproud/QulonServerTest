@@ -17,6 +17,8 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
+    cleanupDevices();
+    iniParser->clearData();
     delete ui;
 }
 
@@ -71,8 +73,21 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
         ui->tableWidget->setItem(row, 1, nameItem);
         ui->tableWidget->setItem(row, 2, statusItem);
 
+        deviceList.append(device);
         ++row;
     }
+}
+
+void MainWindow::cleanupDevices()
+{
+    for (Device* device : deviceList)
+    {
+        delete device;
+    }
+    deviceList.clear();
+
+    ui->tableWidget->clearContents();
+    ui->tableWidget->setRowCount(0);
 }
 
 
@@ -84,6 +99,8 @@ void MainWindow::on_openIniFileAction_triggered()
                                                     tr("Config files (*.ini)"));
     if (!filePath.isEmpty())
     {
+        cleanupDevices();
+        iniParser->clearData();
         iniParser->parseIniFile(filePath);
         populateDeviceTable(iniParser->devices);
         ui->ipValue->setText(iniParser->gprsSettings["ip"]);

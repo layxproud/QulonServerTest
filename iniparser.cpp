@@ -84,7 +84,7 @@ void IniParser::parseIniFile(const QString& filePath)
                 }
                 else
                 {
-                    loggerInstance->logInfo(tr("Устройство с номером ") + setDevice["phone"] + tr(" уже существует"));
+                    loggerInstance->logWarning(tr("Устройство с номером ") + setDevice["phone"] + tr(" уже существует"));
                 }
             }
         }
@@ -99,4 +99,10 @@ quint16 IniParser::getPort()
     QString portStr = gprsSettings["port"];
     quint16 port = portStr.toUInt(&ok);
     return port;
+}
+
+void IniParser::clearData()
+{
+    devices.clear();
+    gprsSettings.clear();
 }
