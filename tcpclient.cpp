@@ -1,11 +1,11 @@
 #include "tcpclient.h"
 
 TcpClient::TcpClient(QObject *parent)
-    : QObject{parent}
+    : QObject{parent}, _connected{false}
 {
     connect(&_socket, &QTcpSocket::connected, this, &TcpClient::onSocketConnected);
     connect(&_socket, &QTcpSocket::disconnected, this, &TcpClient::onSocketDisconnected);
-    connect(&_socket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(onSocketError(QAbstractSocket::SocketError)));
+    connect(&_socket, &QAbstractSocket::errorOccurred, this, &TcpClient::onSocketError);
     connect(&_socket, &QTcpSocket::readyRead, this, &TcpClient::onSocketReadyRead);
 }
 
@@ -45,7 +45,6 @@ void TcpClient::parseMessage(const QByteArray &message)
 {
     QByteArray syncMessage = QByteArray::fromHex("00800010"); // the sync message is always these bytes
 
-    // Split the raw message into individual messages
     QList<QByteArray> messages = message.split(0xC0);
 
     for (const QByteArray &message : messages)
@@ -65,6 +64,8 @@ void TcpClient::parseMessage(const QByteArray &message)
             // HEADER
             FL_MODBUS_MESSAGE modbusMessage;
             memcpy(&modbusMessage, message.constData(), sizeof(FL_MODBUS_MESSAGE));
+            _serverAddr = modbusMessage.sour_address;
+            _myAddr = modbusMessage.dist_address;
 
             // DATA
             int dataLength = modbusMessage.len;
@@ -92,7 +93,7 @@ void TcpClient::parseMessage(const QByteArray &message)
             // Next message case
             else if (_currTx + 0x01 == modbusMessage.tx_id)
             {
-                performCommand(message, data);
+                performCommand(message);
             }
             // Wrong message
             else
@@ -106,16 +107,16 @@ void TcpClient::parseMessage(const QByteArray &message)
 }
 
 
-void TcpClient::performCommand(const QByteArray &message, const QByteArray &data)
+void TcpClient::performCommand(const QByteArray &message)
 {
     switch (message[6])
     {
     case PROT_ID_CMD:
-        sendIdentificationMessage(message);
+        sendIdentificationMessage();
         break;
 
     case PROT_STATE_REQ_CMD:
-        sendState(message);
+        sendState(false);
         break;
 
     case PROT_REPLY_ERROR:
@@ -155,7 +156,7 @@ void TcpClient::sendSyncCommand()
 }
 
 
-void TcpClient::sendIdentificationMessage(const QByteArray &message)
+void TcpClient::sendIdentificationMessage()
 {
     checkConnection();
 
@@ -181,10 +182,13 @@ void TcpClient::sendIdentificationMessage(const QByteArray &message)
     FL_MODBUS_MESSAGE modbusMessage;
     modbusMessage.tx_id = _currTx + 0x01;
     modbusMessage.rx_id = _currRx + 0x01;
-    modbusMessage.dist_addressMB = message[2];
-    modbusMessage.FUNCT = message[3];
-    modbusMessage.sour_address = message[5];
-    modbusMessage.dist_address = message[4];
+    // modbusMessage.dist_addressMB = message[2];
+    modbusMessage.dist_addressMB = _myAddr;
+    modbusMessage.FUNCT = 0x6E;
+    // modbusMessage.sour_address = message[5];
+    modbusMessage.sour_address = _myAddr;
+    // modbusMessage.dist_address = message[4];
+    modbusMessage.dist_address = _serverAddr;
     modbusMessage.command = PROT_ID_OK;
     modbusMessage.len = static_cast<unsigned char>(data.size());
     QByteArray header(reinterpret_cast<const char*>(&modbusMessage), sizeof(modbusMessage));
@@ -210,7 +214,7 @@ void TcpClient::sendIdentificationMessage(const QByteArray &message)
     emit dataSent(_currentMessage);
 }
 
-void TcpClient::sendState(const QByteArray &message)
+void TcpClient::sendState(const bool &outsideCall)
 {
     checkConnection();
 
@@ -222,12 +226,18 @@ void TcpClient::sendState(const QByteArray &message)
 
     // HEADER
     FL_MODBUS_MESSAGE modbusMessage;
-    modbusMessage.tx_id = _currTx + 0x01;
+    if (outsideCall)
+        modbusMessage.tx_id = _currTx;
+    else
+        modbusMessage.tx_id = _currTx + 0x01;
     modbusMessage.rx_id = _currRx + 0x01;
-    modbusMessage.dist_addressMB = message[2];
-    modbusMessage.FUNCT = message[3];
-    modbusMessage.sour_address = message[5];
-    modbusMessage.dist_address = message[4];
+    // modbusMessage.dist_addressMB = message[2];
+    modbusMessage.dist_addressMB = _myAddr;
+    modbusMessage.FUNCT = 0x6E;
+    // modbusMessage.sour_address = message[5];
+    modbusMessage.sour_address = _myAddr;
+    // modbusMessage.dist_address = message[4];
+    modbusMessage.dist_address = _serverAddr;
     modbusMessage.command = PROT_STATE_REQ_OK;
     modbusMessage.len = static_cast<unsigned char>(data.size());
     QByteArray header(reinterpret_cast<const char*>(&modbusMessage), sizeof(modbusMessage));
@@ -377,14 +387,14 @@ void TcpClient::checkConnection()
 void TcpClient::onSocketConnected()
 {
     _connected = true;
-    emit connected();
+    emit connectionChanged(_connected);
 }
 
 
 void TcpClient::onSocketDisconnected()
 {
     _connected = false;
-    emit disconnected();
+    emit connectionChanged(_connected);
 }
 
 
@@ -397,10 +407,8 @@ void TcpClient::onSocketReadyRead()
 }
 
 
-void TcpClient::onSocketError(QAbstractSocket::SocketError socketError)
+void TcpClient::onSocketError()
 {
-    Q_UNUSED(socketError);
     QString errorString = _socket.errorString();
-
     emit errorOccurred(errorString);
 }

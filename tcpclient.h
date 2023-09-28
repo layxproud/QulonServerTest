@@ -21,20 +21,23 @@ public:
 
     void parseMessage(const QByteArray &rawMessage);
 
+    void sendState(const bool &outsideCall);
+
 private:
     QString _phone;
     QTcpSocket _socket;
-    bool _connected = false;
+    bool _connected;
     QByteArray _currentMessage;
     QByteArray _receivedMessage;
     UCHAR _currTx;
     UCHAR _currRx;
+    UCHAR _myAddr;
+    UCHAR _serverAddr;
 
 private:
-    void performCommand(const QByteArray &message, const QByteArray &data);
+    void performCommand(const QByteArray &message);
     void sendSyncCommand();
-    void sendIdentificationMessage(const QByteArray &message);
-    void sendState(const QByteArray &message);
+    void sendIdentificationMessage();
     void sendDefaultResponce(const QByteArray &message);
 
     QByteArray transformToData(const QByteArray &input);
@@ -45,11 +48,10 @@ private slots:
     void onSocketConnected();
     void onSocketDisconnected();
     void onSocketReadyRead();
-    void onSocketError(QAbstractSocket::SocketError socketError);
+    void onSocketError();
 
 signals:
-    void connected();
-    void disconnected();
+    void connectionChanged(const bool &status);
     void dataSent(const QByteArray &data);
     void dataReceived(const QByteArray &data);
     void errorOccurred(const QString &errorString);

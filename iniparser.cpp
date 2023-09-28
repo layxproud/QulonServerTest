@@ -49,11 +49,7 @@ void IniParser::parseIniFile(const QString& filePath)
     }
 
     QTextStream in(&file);
-#ifdef Q_OS_WIN
-    in.setCodec("Windows-1251");
-#elif defined(Q_OS_LINUX)
-    in.setCodec("UTF-8");
-#endif
+    in.setEncoding(QStringConverter::System);
 
     QString currentSection;
 
@@ -81,6 +77,9 @@ void IniParser::parseIniFile(const QString& filePath)
                 {
                     Device* device = new Device(setDevice["phone"], setDevice["name"], loggerInstance);
                     devices.insert(setDevice["phone"], device);
+
+                    device->setIp(gprsSettings["ip"]);
+                    device->setPort(getPort());
                 }
                 else
                 {
@@ -103,6 +102,11 @@ quint16 IniParser::getPort()
 
 void IniParser::clearData()
 {
+    for (auto &device : devices)
+    {
+        delete device;
+    }
+
     devices.clear();
     gprsSettings.clear();
 }

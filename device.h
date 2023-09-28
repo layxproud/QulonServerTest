@@ -20,10 +20,12 @@ public:
     void setIp(const QString &ip);
     void setPort(const quint16 &port);
     void setConnectionInterval(const int &interval);
-    void setDisconnectionInterval(const int &interval);
+    void setDisconnectionInterval(const int &from, const int &to);
+    void setSendStatusInterval(const int &interval);
 
     void startConnectionTimer();
     void startDisconnectionTimer();
+    void startStatusTimer();
 
 public:
     TcpClient _client;
@@ -39,16 +41,19 @@ private:
 
     QTimer *connectionTimer;
     QTimer *disconnectionTimer;
-    int _connectionInterval = 1;
-    int _disconnectionInterval = 20;
+    QTimer *statusTimer;
+    // default values
+    int _connectionInterval = 60000;
+    int _disconnectionFromInterval = 300000;
+    int _disconnectionToInterval = 600000;
+    int _sendStatusInterval = 30000;
 
 private:
     void setLogger(Logger *logger);
     int phoneToId();
 
 private slots:
-    void onConnected();
-    void onDisconnected();
+    void onConnectionChanged(const bool &status);
     void onDataReceived(const QByteArray &data);
     void onDataSent(const QByteArray &data);
     void onError(const QString &errorString);
@@ -61,10 +66,10 @@ private slots:
 
     void onConnectionTimerTimeout();
     void onDisconnectionTimerTimeout();
+    void onStatusTimerTimeout();
 
 signals:
-    void connected();
-    void disconnected();
+    void connectionChanged(const bool &status);
 };
 
 #endif // DEVICE_H

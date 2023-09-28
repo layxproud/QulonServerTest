@@ -5,21 +5,24 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
+    , logger(std::make_unique<Logger>(this))
+    , iniParser(std::make_unique<IniParser>(logger.get(), this))
 {
     ui->setupUi(this);
-    logger = new Logger(this);
     logger->setLogWindow(ui->logWindow);
-    iniParser = new IniParser(logger, this);
 
-    ui->connectIntervalBox->setValue(1);
-    ui->disconnectIntervalBox->setValue(20);
+    ui->conIntMinBox->setValue(DEFAULT_CONNECT_MIN_BOX);
+    ui->conIntSecBox->setValue(DEFAULT_CONNECT_SEC_BOX);
+    ui->discIntFromMinBox->setValue(DEFAULT_DISCONNECT_FROM_MIN_BOX);
+    ui->discIntFromSecBox->setValue(DEFAULT_DISCONNECT_FROM_SEC_BOX);
+    ui->discIntToMinBox->setValue(DEFAULT_DISCONNECT_TO_MIN_BOX);
+    ui->discIntToSecBox->setValue(DEFAULT_DISCONNECT_TO_SEC_BOX);
+    ui->statusIntMinBox->setValue(DEFAULT_STATUS_MIN_BOX);
+    ui->statusIntSecBox->setValue(DEFAULT_STATUS_SEC_BOX);
 }
 
 MainWindow::~MainWindow()
 {
-    cleanupDevices();
-    iniParser->clearData();
-    delete ui;
 }
 
 
@@ -30,10 +33,10 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
     ui->tableWidget->setColumnCount(3);
     ui->tableWidget->setRowCount(devices.size());
 
-    ui->tableWidget->setHorizontalHeaderLabels(QStringList() << tr("ID")
-                                                             << tr("Имя")
-                                                             << tr("Статус соединения"));
-
+    // Set table headers
+    QStringList headers;
+    headers << tr("ID") << tr("Имя") << tr("Статус соединения");
+    ui->tableWidget->setHorizontalHeaderLabels(headers);
     ui->tableWidget->setAlternatingRowColors(true);
 
     // Size Policy
@@ -42,22 +45,14 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
 
     int row = 0;
-    foreach (const QString &phone, devices.keys())
+    for (auto& device : devices)
     {
-        Device* device = devices.value(phone);
-        device->setIp(iniParser->gprsSettings["ip"]);
-        device->setPort(iniParser->getPort());
-
         QTableWidgetItem* phoneItem = new QTableWidgetItem(device->getPhone());
         QTableWidgetItem* nameItem = new QTableWidgetItem(device->getName());
         QTableWidgetItem* statusItem = new QTableWidgetItem();
 
-        connect(device, &Device::connected, this, [=]() {
-            statusItem->setText(tr("Подключено"));
-        });
-
-        connect(device, &Device::disconnected, this, [=]() {
-            statusItem->setText(tr("Нет соединения"));
+        connect(device, &Device::connectionChanged, this, [=](bool status) {
+            updateStatus(statusItem, status ? tr("Подключено") : tr("Нет соединения"));
         });
 
         if (device->_client.isConnected())
@@ -73,21 +68,28 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
         ui->tableWidget->setItem(row, 1, nameItem);
         ui->tableWidget->setItem(row, 2, statusItem);
 
-        deviceList.append(device);
         ++row;
     }
 }
 
-void MainWindow::cleanupDevices()
+void MainWindow::updateIntervals()
 {
-    for (Device* device : deviceList)
+    int connectionInterval = ui->conIntMinBox->value() * 60 * 1000 + ui->conIntSecBox->value() * 1000;
+    int disconnectionFromInterval = ui->discIntFromMinBox->value() * 60 * 1000 + ui->discIntFromSecBox->value() * 1000;
+    int disconnectionToInterval = ui->discIntToMinBox->value() * 60 * 1000 + ui->discIntToSecBox->value() * 1000;
+    int sendStatusInterval = ui->statusIntMinBox->value() * 60 * 1000 + ui->statusIntSecBox->value() * 1000;
+    for(const auto& device : iniParser->devices)
     {
-        delete device;
+        device->setConnectionInterval(connectionInterval);
+        device->setDisconnectionInterval(disconnectionFromInterval, disconnectionToInterval);
+        device->setSendStatusInterval(sendStatusInterval);
     }
-    deviceList.clear();
+}
 
-    ui->tableWidget->clearContents();
-    ui->tableWidget->setRowCount(0);
+
+void MainWindow::updateStatus(QTableWidgetItem *item, const QString &status)
+{
+    item->setText(status);
 }
 
 
@@ -99,16 +101,22 @@ void MainWindow::on_openIniFileAction_triggered()
                                                     tr("Config files (*.ini)"));
     if (!filePath.isEmpty())
     {
-        cleanupDevices();
-        iniParser->clearData();
-        iniParser->parseIniFile(filePath);
-        populateDeviceTable(iniParser->devices);
-        ui->ipValue->setText(iniParser->gprsSettings["ip"]);
-        ui->portValue->setText(iniParser->gprsSettings["port"]);
+        if (QFile::exists(filePath))
+        {
+            iniParser->clearData();
+            iniParser->parseIniFile(filePath);
+            populateDeviceTable(iniParser->devices);
+            ui->ipValue->setText(iniParser->gprsSettings["ip"]);
+            ui->portValue->setText(iniParser->gprsSettings["port"]);
+        }
+        else
+        {
+            logger->logError(tr("Файл не существует."));
+        }
     }
     else
     {
-        logger->logError(tr("Ошибка открытия файла. Файл пустой или не существует."));
+        logger->logError(tr("Ошибка открытия файла."));
     }
 }
 
@@ -141,27 +149,38 @@ void MainWindow::on_connectButton_clicked()
 
 void MainWindow::on_pushButton_clicked()
 {
-    foreach (Device* device, iniParser->devices)
+    for(const auto& device : iniParser->devices)
     {
         device->startConnectionTimer();
     }
 }
 
 
-void MainWindow::on_connectIntervalBox_valueChanged(int arg1)
+void MainWindow::on_saveValuesCheck_stateChanged(int arg1)
 {
-    foreach (Device* device, iniParser->devices)
+    if (arg1 == Qt::Checked)
     {
-        device->setConnectionInterval(arg1);
+        ui->conIntMinBox->setEnabled(false);
+        ui->conIntSecBox->setEnabled(false);
+        ui->discIntFromMinBox->setEnabled(false);
+        ui->discIntFromSecBox->setEnabled(false);
+        ui->discIntToMinBox->setEnabled(false);
+        ui->discIntToSecBox->setEnabled(false);
+        ui->statusIntMinBox->setEnabled(false);
+        ui->statusIntSecBox->setEnabled(false);
+
+        updateIntervals();
     }
-}
-
-
-void MainWindow::on_disconnectIntervalBox_valueChanged(int arg1)
-{
-    foreach (Device* device, iniParser->devices)
+    else if (arg1 == Qt::Unchecked)
     {
-        device->setDisconnectionInterval(arg1);
+        ui->conIntMinBox->setEnabled(true);
+        ui->conIntSecBox->setEnabled(true);
+        ui->discIntFromMinBox->setEnabled(true);
+        ui->discIntFromSecBox->setEnabled(true);
+        ui->discIntToMinBox->setEnabled(true);
+        ui->discIntToSecBox->setEnabled(true);
+        ui->statusIntMinBox->setEnabled(true);
+        ui->statusIntSecBox->setEnabled(true);
     }
 }
 
