@@ -2,8 +2,9 @@
 
 Logger::Logger(QObject *parent)
     : QObject{parent}
+    , logWindow(nullptr)
 {
-    logWindow = nullptr;
+
 }
 
 void Logger::setLogWindow(QTextBrowser *logBrowser)
@@ -42,5 +43,5 @@ QString Logger::byteArrToStr(const QByteArray &arr)
     {
         result.append(QString("%1 ").arg(static_cast<unsigned char>(byte), 2, 16, QChar('0')));
     }
-    return result.trimmed(); // Remove trailing space
+    return result.trimmed();
 }

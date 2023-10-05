@@ -2,17 +2,17 @@
 #define INIPARSER_H
 
 #include <QObject>
-
-#include "device.h"
-#include "logger.h"
 #include <QFile>
 #include <QTextStream>
+#include "device.h"
+#include "logger.h"
 
 class IniParser : public QObject
 {
     Q_OBJECT
 public:
     explicit IniParser(Logger *logger, QObject *parent = nullptr);
+    ~IniParser();
 
     void parseIniFile(const QString &filePath);
     quint16 getPort();
@@ -24,10 +24,9 @@ public:
     QMap<QString, Device*> devices;
 
 private:
-    Logger *loggerInstance;
+    Logger *_logger;
 
 private:
-    void setLogger(Logger *logger);
     QMap<QString, QString> parseSection(QTextStream& in, const QStringList& keys);
 };
 

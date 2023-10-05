@@ -5,31 +5,39 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
-    , logger(std::make_unique<Logger>(this))
-    , iniParser(std::make_unique<IniParser>(logger.get(), this))
+    , logger(new Logger(this))
+    , iniParser(new IniParser(logger, this))
+    , isRunning(false)
 {
     ui->setupUi(this);
     logger->setLogWindow(ui->logWindow);
 
-    ui->conIntMinBox->setValue(DEFAULT_CONNECT_MIN_BOX);
-    ui->conIntSecBox->setValue(DEFAULT_CONNECT_SEC_BOX);
-    ui->discIntFromMinBox->setValue(DEFAULT_DISCONNECT_FROM_MIN_BOX);
-    ui->discIntFromSecBox->setValue(DEFAULT_DISCONNECT_FROM_SEC_BOX);
-    ui->discIntToMinBox->setValue(DEFAULT_DISCONNECT_TO_MIN_BOX);
-    ui->discIntToSecBox->setValue(DEFAULT_DISCONNECT_TO_SEC_BOX);
-    ui->statusIntMinBox->setValue(DEFAULT_STATUS_MIN_BOX);
-    ui->statusIntSecBox->setValue(DEFAULT_STATUS_SEC_BOX);
+    spinBoxes[0] = {ui->conIntMinBox, DEFAULT_CONNECT_MIN_BOX};
+    spinBoxes[1] = {ui->conIntSecBox, DEFAULT_CONNECT_SEC_BOX};
+    spinBoxes[2] = {ui->discIntFromMinBox, DEFAULT_DISCONNECT_FROM_MIN_BOX};
+    spinBoxes[3] = {ui->discIntFromSecBox, DEFAULT_DISCONNECT_FROM_SEC_BOX};
+    spinBoxes[4] = {ui->discIntToMinBox, DEFAULT_DISCONNECT_TO_MIN_BOX};
+    spinBoxes[5] = {ui->discIntToSecBox, DEFAULT_DISCONNECT_TO_SEC_BOX};
+    spinBoxes[6] = {ui->statusIntMinBox, DEFAULT_STATUS_MIN_BOX};
+    spinBoxes[7] = {ui->statusIntSecBox, DEFAULT_STATUS_SEC_BOX};
+    initSpinBoxes();
+    enableSpinBoxes(true);
+
+    // GUI connects
+    connect(ui->multiConnectButton, &QPushButton::clicked, this, &MainWindow::onMultiConnectButtonClicked);
+    connect(ui->connectButton, &QPushButton::clicked, this, &MainWindow::onConnectButtonClicked);
+    connect(ui->saveValuesButton, &QCheckBox::stateChanged, this, &MainWindow::onSaveValuesButtonStateChanged);
+    connect(ui->openIniFileAction, &QAction::triggered, this, &MainWindow::onOpenIniFileActionTriggered);
 }
 
 MainWindow::~MainWindow()
 {
+    delete ui;
 }
-
 
 void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
 {
     ui->tableWidget->clear();
-
     ui->tableWidget->setColumnCount(3);
     ui->tableWidget->setRowCount(devices.size());
 
@@ -45,14 +53,14 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
 
     int row = 0;
-    for (auto& device : devices)
+    for (const auto& device : devices)
     {
         QTableWidgetItem* phoneItem = new QTableWidgetItem(device->getPhone());
         QTableWidgetItem* nameItem = new QTableWidgetItem(device->getName());
         QTableWidgetItem* statusItem = new QTableWidgetItem();
 
         connect(device, &Device::connectionChanged, this, [=](bool status) {
-            updateStatus(statusItem, status ? tr("Подключено") : tr("Нет соединения"));
+            updateDeviceStatus(statusItem, status ? tr("Подключено") : tr("Нет соединения"));
         });
 
         if (device->_client.isConnected())
@@ -86,55 +94,30 @@ void MainWindow::updateIntervals()
     }
 }
 
+void MainWindow::initSpinBoxes()
+{
+    for (const SpinBoxInfo& info : spinBoxes)
+    {
+        info.spinBox->setValue(info.defaultValue);
+    }
+}
+
 void MainWindow::enableSpinBoxes(const bool &arg)
 {
-    ui->conIntMinBox->setEnabled(arg);
-    ui->conIntSecBox->setEnabled(arg);
-    ui->discIntFromMinBox->setEnabled(arg);
-    ui->discIntFromSecBox->setEnabled(arg);
-    ui->discIntToMinBox->setEnabled(arg);
-    ui->discIntToSecBox->setEnabled(arg);
-    ui->statusIntMinBox->setEnabled(arg);
-    ui->statusIntSecBox->setEnabled(arg);
-}
-
-
-void MainWindow::updateStatus(QTableWidgetItem *item, const QString &status)
-{
-    item->setText(status);
-}
-
-
-void MainWindow::on_openIniFileAction_triggered()
-{
-    QString filePath = QFileDialog::getOpenFileName(this,
-                                                    tr("Выберите ini файл"),
-                                                    QDir::homePath(),
-                                                    tr("Config files (*.ini)"));
-    if (!filePath.isEmpty())
+    for (const SpinBoxInfo& info : spinBoxes)
     {
-        if (QFile::exists(filePath))
-        {
-            iniParser->clearData();
-            iniParser->parseIniFile(filePath);
-            populateDeviceTable(iniParser->devices);
-            ui->ipValue->setText(iniParser->gprsSettings["ip"]);
-            ui->portValue->setText(iniParser->gprsSettings["port"]);
-        }
-        else
-        {
-            logger->logError(tr("Файл не существует."));
-        }
-    }
-    else
-    {
-        logger->logError(tr("Ошибка открытия файла."));
+        info.spinBox->setEnabled(arg);
     }
 }
-
-
-void MainWindow::on_connectButton_clicked()
+\
+void MainWindow::onConnectButtonClicked()
 {
+    if (ui->tableWidget->rowCount() <= 0)
+    {
+        logger->logWarning(tr("Устройства не найдены!"));
+        return;
+    }
+
     bool ok;
 
     QString phoneNumber = QInputDialog::getText(this,
@@ -144,39 +127,93 @@ void MainWindow::on_connectButton_clicked()
                                                 QString(),
                                                 &ok);
 
-    if (ok && !phoneNumber.isEmpty())
+    if (!ok || phoneNumber.isEmpty())
     {
-        if (iniParser->devices.contains(phoneNumber))
+        logger->logError(tr("Ошибка ввода номера телефона."));
+        return;
+    }
+
+    if (!iniParser->devices.contains(phoneNumber))
+    {
+        logger->logWarning(tr("Устройство с номером ") + phoneNumber + tr(" не найдено в списке."));
+        return;
+    }
+
+    Device* device = iniParser->devices.value(phoneNumber);
+    device->_client.connectToServer(iniParser->gprsSettings["ip"], iniParser->getPort());
+}
+
+void MainWindow::onMultiConnectButtonClicked()
+{
+    if (ui->tableWidget->rowCount() <= 0)
+    {
+        logger->logWarning(tr("Устройства не найдены!"));
+        return;
+    }
+    if (!isRunning)
+    {
+        updateIntervals();
+        ui->saveValuesButton->setChecked(true);
+        logger->logInfo(tr("Запускаю соединения..."));
+        for(const auto& device : iniParser->devices)
         {
-            Device* device = iniParser->devices.value(phoneNumber);
-            device->_client.connectToServer(iniParser->gprsSettings["ip"], iniParser->getPort());
+            device->startWork();
         }
-        else
+        ui->multiConnectButton->setText(tr("СТОП"));
+        isRunning = true;
+    }
+    else
+    {
+        logger->logInfo(tr("Закрываю соединения..."));
+        for(const auto& device : iniParser->devices)
         {
-            logger->logWarning(tr("Устройство с номером ") + phoneNumber + tr(" не найдено в списке."));
+            device->stopWork();
         }
+        ui->multiConnectButton->setText(tr("СТАРТ"));
+        logger->logInfo(tr("Завершено!"));
+        isRunning = false;
     }
 }
 
-
-void MainWindow::on_pushButton_clicked()
+void MainWindow::onOpenIniFileActionTriggered()
 {
-    for(const auto& device : iniParser->devices)
+    QString filePath = QFileDialog::getOpenFileName(this,
+                                                    tr("Выберите ini файл"),
+                                                    QDir::homePath(),
+                                                    tr("Config files (*.ini)"));
+
+    if (filePath.isEmpty())
     {
-        device->startConnectionTimer();
+        logger->logError(tr("Ошибка открытия файла."));
+        return;
     }
+
+    if (!QFile::exists(filePath))
+    {
+        logger->logError(tr("Файл не существует."));
+        return;
+    }
+
+    iniParser->clearData();
+    iniParser->parseIniFile(filePath);
+    populateDeviceTable(iniParser->devices);
+    ui->ipValue->setText(iniParser->gprsSettings["ip"]);
+    ui->portValue->setText(iniParser->gprsSettings["port"]);
 }
 
-
-void MainWindow::on_saveValuesCheck_stateChanged(int arg1)
+void MainWindow::onSaveValuesButtonStateChanged(int state)
 {
-    if (arg1 == Qt::Checked)
+    if (state == Qt::Checked)
     {
         enableSpinBoxes(false);
-        updateIntervals();
     }
-    else if (arg1 == Qt::Unchecked)
+    else if (state == Qt::Unchecked)
     {
         enableSpinBoxes(true);
     }
+}
+
+void MainWindow::updateDeviceStatus(QTableWidgetItem *item, const QString &status)
+{
+    item->setText(status);
 }

@@ -23,9 +23,8 @@ public:
     void setDisconnectionInterval(const int &from, const int &to);
     void setSendStatusInterval(const int &interval);
 
-    void startConnectionTimer();
-    void startDisconnectionTimer();
-    void startStatusTimer();
+    void startWork();
+    void stopWork();
 
 public:
     TcpClient _client;
@@ -37,11 +36,12 @@ private:
     quint16 _port;
     int _phoneId;
 
-    Logger *loggerInstance;
+    Logger *_logger;
 
     QTimer *connectionTimer;
     QTimer *disconnectionTimer;
     QTimer *statusTimer;
+
     // default values
     int _connectionInterval = 60000;
     int _disconnectionFromInterval = 300000;
@@ -49,8 +49,10 @@ private:
     int _sendStatusInterval = 30000;
 
 private:
-    void setLogger(Logger *logger);
     int phoneToId();
+    void startConnectionTimer();
+    void startDisconnectionTimer();
+    void startStatusTimer();
 
 private slots:
     void onConnectionChanged(const bool &status);

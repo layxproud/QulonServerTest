@@ -3,13 +3,14 @@
 
 IniParser::IniParser(Logger *logger, QObject *parent)
     : QObject{parent}
+    , _logger{logger}
 {
-    setLogger(logger);
+
 }
 
-void IniParser::setLogger(Logger *logger)
+IniParser::~IniParser()
 {
-    loggerInstance = logger;
+    clearData();
 }
 
 QMap<QString, QString> IniParser::parseSection(QTextStream& in, const QStringList& keys)
@@ -44,7 +45,7 @@ void IniParser::parseIniFile(const QString& filePath)
 
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
     {
-        loggerInstance->logError(tr("Не удалось открыть .ini файл: ") + file.errorString());
+        _logger->logError(tr("Не удалось открыть .ini файл: ") + file.errorString());
         return;
     }
 
@@ -75,7 +76,7 @@ void IniParser::parseIniFile(const QString& filePath)
                 QMap<QString, QString> setDevice = parseSection(in, keys);
                 if (!devices.contains(setDevice["phone"]))
                 {
-                    Device* device = new Device(setDevice["phone"], setDevice["name"], loggerInstance);
+                    Device* device = new Device(setDevice["phone"], setDevice["name"], _logger);
                     devices.insert(setDevice["phone"], device);
 
                     device->setIp(gprsSettings["ip"]);
@@ -83,7 +84,7 @@ void IniParser::parseIniFile(const QString& filePath)
                 }
                 else
                 {
-                    loggerInstance->logWarning(tr("Устройство с номером ") + setDevice["phone"] + tr(" уже существует"));
+                    _logger->logWarning(tr("Устройство с номером ") + setDevice["phone"] + tr(" уже существует"));
                 }
             }
         }

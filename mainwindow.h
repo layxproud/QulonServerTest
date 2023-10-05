@@ -5,12 +5,19 @@
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QTableWidget>
+#include <QSpinBox>
 #include "iniparser.h"
 #include "logger.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
+
+struct SpinBoxInfo
+{
+    QSpinBox* spinBox;
+    int defaultValue;
+};
 
 class MainWindow : public QMainWindow
 {
@@ -20,6 +27,13 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+private:
+    Ui::MainWindow* ui;
+    Logger* logger;
+    IniParser* iniParser;
+
+    bool isRunning;
+    SpinBoxInfo spinBoxes[8];
     static constexpr int DEFAULT_CONNECT_MIN_BOX = 1;
     static constexpr int DEFAULT_CONNECT_SEC_BOX = 0;
     static constexpr int DEFAULT_DISCONNECT_FROM_MIN_BOX = 5;
@@ -30,20 +44,16 @@ public:
     static constexpr int DEFAULT_STATUS_SEC_BOX = 30;
 
 private:
-    Ui::MainWindow *ui;
-    std::unique_ptr<Logger> logger;
-    std::unique_ptr<IniParser> iniParser;
-
-private:
     void populateDeviceTable(const QMap<QString, Device*> &devices);
     void updateIntervals();
+    void initSpinBoxes();
     void enableSpinBoxes(const bool &arg);
 
 private slots:
-    void updateStatus(QTableWidgetItem* item, const QString &status);
-    void on_openIniFileAction_triggered();
-    void on_connectButton_clicked();
-    void on_pushButton_clicked();
-    void on_saveValuesCheck_stateChanged(int arg1);
+    void onConnectButtonClicked();
+    void onMultiConnectButtonClicked();
+    void onOpenIniFileActionTriggered();
+    void onSaveValuesButtonStateChanged(int state);
+    void updateDeviceStatus(QTableWidgetItem* item, const QString &status);
 };
 #endif // MAINWINDOW_H
