@@ -191,7 +191,7 @@ void ModbusHandler::formStateMessage(const bool &outsideCall)
     modbusMessage.sour_address = _myAddr;
     modbusMessage.dist_address = _serverAddr;
     modbusMessage.command = PROT_STATE_REQ_OK;
-    modbusMessage.len = static_cast<unsigned char>(data.size());
+    modbusMessage.len = static_cast<unsigned char>(rawData.size());
     QByteArray header(reinterpret_cast<const char*>(&modbusMessage), sizeof(modbusMessage));
 
     // CRC
@@ -315,12 +315,12 @@ QByteArray ModbusHandler::transformToRaw(const QByteArray& message)
                 if (nextByte == char(0xDC))
                 {
                     output.append(char(0xC0));
-                    i++; // Skip the next byte
+                    i++;
                 }
                 else if (nextByte == char(0xDD))
                 {
                     output.append(char(0xDB));
-                    i++; // Skip the next byte
+                    i++;
                 }
                 else
                 {
