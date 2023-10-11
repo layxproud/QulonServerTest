@@ -57,20 +57,11 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
     {
         QTableWidgetItem* phoneItem = new QTableWidgetItem(device->getPhone());
         QTableWidgetItem* nameItem = new QTableWidgetItem(device->getName());
-        QTableWidgetItem* statusItem = new QTableWidgetItem();
+        QTableWidgetItem* statusItem = new QTableWidgetItem(device->isConnected() ? tr("Подключено") : tr("Нет соединения"));
 
         connect(device, &Device::connectionChanged, this, [=](bool status) {
             updateDeviceStatus(statusItem, status ? tr("Подключено") : tr("Нет соединения"));
         });
-
-        if (device->_client.isConnected())
-        {
-            statusItem->setText(tr("Подключено"));
-        }
-        else
-        {
-            statusItem->setText(tr("Нет соединения"));
-        }
 
         ui->tableWidget->setItem(row, 0, phoneItem);
         ui->tableWidget->setItem(row, 1, nameItem);
@@ -140,7 +131,7 @@ void MainWindow::onConnectButtonClicked()
     }
 
     Device* device = iniParser->devices.value(phoneNumber);
-    device->_client.connectToServer(iniParser->gprsSettings["ip"], iniParser->getPort());
+    device->debugConnect(iniParser->gprsSettings["ip"], iniParser->getPort());
 }
 
 void MainWindow::onMultiConnectButtonClicked()

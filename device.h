@@ -16,6 +16,7 @@ public:
 
     QString getPhone() const;
     QString getName() const;
+    bool isConnected() const;
 
     void setIp(const QString &ip);
     void setPort(const quint16 &port);
@@ -26,8 +27,7 @@ public:
     void startWork();
     void stopWork();
 
-public:
-    TcpClient _client;
+    void debugConnect(const QString& serverAddress, quint16 serverPort);
 
 private:
     QString _phone;
@@ -35,8 +35,10 @@ private:
     QString _ip;
     quint16 _port;
     int _phoneId;
+    bool _connected;
 
-    Logger *_logger;
+    Logger* _logger;
+    TcpClient* _client;
 
     QTimer *connectionTimer;
     QTimer *disconnectionTimer;
@@ -56,15 +58,6 @@ private:
 
 private slots:
     void onConnectionChanged(const bool &status);
-    void onDataReceived(const QByteArray &data);
-    void onDataSent(const QByteArray &data);
-    void onError(const QString &errorString);
-    void onUnknownCommand(const UCHAR &command);
-    void onNoConnection();
-    void onReplyError();
-    void onWrongCRC(const UCHAR &expected1, const UCHAR &received1,
-                    const UCHAR &expected2, const UCHAR &received2);
-    void onWrongTx(const UCHAR &expected, const UCHAR &received);
 
     void onConnectionTimerTimeout();
     void onDisconnectionTimerTimeout();

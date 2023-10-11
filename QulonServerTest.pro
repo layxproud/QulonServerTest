@@ -15,6 +15,7 @@ SOURCES += \
     logger.cpp \
     main.cpp \
     mainwindow.cpp \
+    modbushandler.cpp \
     tcpclient.cpp
 
 HEADERS += \
@@ -23,6 +24,7 @@ HEADERS += \
     iniparser.h \
     logger.h \
     mainwindow.h \
+    modbushandler.h \
     tcpclient.h
 
 FORMS += \
