@@ -28,11 +28,24 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->connectButton, &QPushButton::clicked, this, &MainWindow::onConnectButtonClicked);
     connect(ui->saveValuesButton, &QCheckBox::stateChanged, this, &MainWindow::onSaveValuesButtonStateChanged);
     connect(ui->openIniFileAction, &QAction::triggered, this, &MainWindow::onOpenIniFileActionTriggered);
+
+    ui->statusBar->addWidget(ui->ipLabel);
+    ui->statusBar->addWidget(ui->ipValue);
+    ui->statusBar->addWidget(ui->portLabel);
+    ui->statusBar->addWidget(ui->portValue);
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    if (logger)
+        logger->disableGUI();
+
+    QMainWindow::closeEvent(event);
 }
 
 void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
@@ -101,7 +114,7 @@ void MainWindow::enableSpinBoxes(const bool &arg)
     }
 }
 \
-void MainWindow::onConnectButtonClicked()
+    void MainWindow::onConnectButtonClicked()
 {
     if (ui->tableWidget->rowCount() <= 0)
     {

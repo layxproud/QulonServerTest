@@ -3,17 +3,23 @@
 Logger::Logger(QObject *parent)
     : QObject{parent}
     , logWindow(nullptr)
-{
-
-}
+    , closing(false)
+{}
 
 void Logger::setLogWindow(QTextBrowser *logBrowser)
 {
     logWindow = logBrowser;
 }
 
+void Logger::disableGUI()
+{
+    closing = true;
+}
+
 void Logger::logInfo(const QString &message)
 {
+    if (closing) return;
+
     if (logWindow)
     {
         logWindow->append(QString("<font color='green'>[INFO] %1</font>").arg(message));
@@ -22,6 +28,8 @@ void Logger::logInfo(const QString &message)
 
 void Logger::logWarning(const QString &message)
 {
+    if (closing) return;
+
     if (logWindow)
     {
         logWindow->append(QString("<font color='orange'>[WARNING] %1</font>").arg(message));
@@ -30,6 +38,8 @@ void Logger::logWarning(const QString &message)
 
 void Logger::logError(const QString &message)
 {
+    if (closing) return;
+
     if (logWindow)
     {
         logWindow->append(QString("<font color='red'>[ERROR] %1</font>").arg(message));

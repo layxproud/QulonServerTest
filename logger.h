@@ -12,6 +12,7 @@ public:
     Logger(QObject *parent = nullptr);
 
     void setLogWindow(QTextBrowser *logWindow);
+    void disableGUI();
 
     void logInfo(const QString &message);
     void logWarning(const QString &message);
@@ -21,6 +22,8 @@ public:
 
 private:
     QTextBrowser *logWindow;
+
+    bool closing;
 };
 
 #endif // LOGGER_H

@@ -27,6 +27,9 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+protected:
+    void closeEvent(QCloseEvent *event) override; // Declare the override
+
 private:
     Ui::MainWindow* ui;
     Logger* logger;

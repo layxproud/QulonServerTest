@@ -2,8 +2,8 @@
 
 TcpClient::TcpClient(Logger* logger, const QString& phone, QObject *parent)
     : QObject{parent},
-    _connected{false},
     _phone{phone},
+    _connected{false},
     _logger{logger}
 {
     connect(&_socket, &QTcpSocket::connected, this, &TcpClient::onSocketConnected);
