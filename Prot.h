@@ -98,13 +98,9 @@ struct FL_MODBUS_PROT_ID_CMD_MESSAGE
 
 struct FL_MODBUS_STATE_CMD_MESSAGE
 {
-    QByteArray header;
-    QByteArray state02;
-    QByteArray state24;
-    QByteArray state21;
-    QByteArray state23;
-    QByteArray state25;
-    QByteArray state26;
+    UCHAR len;
+    UCHAR type;
+    QByteArray data;
 };
 
 void CalculateCRC(const FL_MODBUS_MESSAGE& mm, const QByteArray& data, UCHAR crc[2]);

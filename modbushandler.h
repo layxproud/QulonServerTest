@@ -25,11 +25,14 @@ private:
     QByteArray _currentMessage;
     QByteArray _receivedMessage;
 
+    std::vector<FL_MODBUS_STATE_CMD_MESSAGE> stateMessage;
+
 private:
     void performCommand(const QByteArray &message);
     void formSyncMessage();
     void formDefaultAnswer(const QByteArray& message);
     void formIdentificationMessage();
+    void addState(const UCHAR& type, const QByteArray& data);
 
     QByteArray addMarkerBytes(const QByteArray& input);
     QByteArray transformToData(const QByteArray& input);

@@ -157,26 +157,26 @@ void ModbusHandler::formStateMessage(const bool &outsideCall)
     UCHAR crc[2];
 
     // DATA (Hardcode for now)
-    FL_MODBUS_STATE_CMD_MESSAGE stateMessage;
-    stateMessage.header = QByteArray::fromHex("390151756C6F6E2D43322D5363656E322C2049503A203139322E3136382E312E36342028455448292C20636F6E6E656374206661696C6564000404006303");
-    stateMessage.state02 = QByteArray::fromHex("020003");
-    stateMessage.state24 = QByteArray::fromHex("240012");
-    stateMessage.state21 = QByteArray::fromHex("210000000000000000000000000000000021");
-    stateMessage.state23 = QByteArray::fromHex("238080000000000000000000000000000000000000000000000000000000000021");
-    stateMessage.state25 = QByteArray::fromHex("25000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF03");
-    stateMessage.state26 = QByteArray::fromHex("2600");
-    quint8 randomValue = QRandomGenerator::global()->bounded(16);
-    stateMessage.state21[1] = randomValue;
-    randomValue = QRandomGenerator::global()->bounded(256);
-    stateMessage.state23[1] = randomValue;
+    addState(0x21, QByteArray::fromHex("00000000000000000000000000000000"));
+    addState(0x23, QByteArray::fromHex("80800000000000000000000000000000000000000000000000000000000000"));
+//    stateMessage.header = QByteArray::fromHex("390151756C6F6E2D43322D5363656E322C2049503A203139322E3136382E312E36342028455448292C20636F6E6E656374206661696C65640004040063");
+//    stateMessage.state02 = QByteArray::fromHex("030200");
+//    stateMessage.state24 = QByteArray::fromHex("032400");
+//    stateMessage.state21 = QByteArray::fromHex("122100000000000000000000000000000000");
+//    stateMessage.state23 = QByteArray::fromHex("212380800000000000000000000000000000000000000000000000000000000000");
+//    stateMessage.state25 = QByteArray::fromHex("2125000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
+//    stateMessage.state26 = QByteArray::fromHex("032600");
+//    quint8 randomValue = QRandomGenerator::global()->bounded(16);
+//    stateMessage.state21[1] = randomValue;
+//    randomValue = QRandomGenerator::global()->bounded(256);
+//    stateMessage.state23[1] = randomValue;
     QByteArray data;
-    data.append(stateMessage.header);
-    data.append(stateMessage.state02);
-    data.append(stateMessage.state24);
-    data.append(stateMessage.state21);
-    data.append(stateMessage.state23);
-    data.append(stateMessage.state25);
-    data.append(stateMessage.state26);
+    for (const FL_MODBUS_STATE_CMD_MESSAGE& message : stateMessage)
+    {
+        data.append(reinterpret_cast<const char*>(&message.len), sizeof(UCHAR));
+        data.append(reinterpret_cast<const char*>(&message.type), sizeof(UCHAR));
+        data.append(message.data);
+    }
     QByteArray rawData(transformToRaw(data));
 
     // HEADER
@@ -261,6 +261,19 @@ void ModbusHandler::formIdentificationMessage()
     _currRx = modbusMessage.rx_id;
 
     emit messageToSend(byteArray);
+}
+
+void ModbusHandler::addState(const UCHAR &type, const QByteArray &data)
+{
+    for (auto& state : stateMessage)
+    {
+        if (state.type == type) return;
+    }
+    FL_MODBUS_STATE_CMD_MESSAGE newState;
+    newState.len = data.size() + 2;
+    newState.type = type;
+    newState.data = data;
+    stateMessage.push_back(newState);
 }
 
 QByteArray ModbusHandler::addMarkerBytes(const QByteArray &input)

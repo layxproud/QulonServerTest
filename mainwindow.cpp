@@ -114,7 +114,7 @@ void MainWindow::enableSpinBoxes(const bool &arg)
     }
 }
 \
-    void MainWindow::onConnectButtonClicked()
+void MainWindow::onConnectButtonClicked()
 {
     if (ui->tableWidget->rowCount() <= 0)
     {
@@ -131,9 +131,11 @@ void MainWindow::enableSpinBoxes(const bool &arg)
                                                 QString(),
                                                 &ok);
 
-    if (!ok || phoneNumber.isEmpty())
+    if (!ok) return;
+
+    if (phoneNumber.isEmpty())
     {
-        logger->logError(tr("Ошибка ввода номера телефона."));
+        logger->logWarning(tr("Вы не ввели номер!"));
         return;
     }
 
