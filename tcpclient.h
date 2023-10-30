@@ -18,6 +18,8 @@ public:
     void connectToServer(const QString &serverAddress, quint16 serverPort);
     void disconnectFromServer();
     void sendState(const bool &outsideCall);
+    void randomiseState();
+    void editByte(const UCHAR &byte);
 
 private:
     QString _phone;
@@ -35,7 +37,7 @@ private:
 
     QByteArray transformToData(const QByteArray &input);
     QByteArray transformToRaw(const QByteArray &input);
-    void checkConnection();
+    bool checkConnection();
 
 private slots:
     void onSocketConnected();

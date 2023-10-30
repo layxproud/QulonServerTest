@@ -13,6 +13,8 @@ public:
     void initStateMessage();
     void parseMessage(const QByteArray &rawMessage);
     void formStateMessage(const bool &outsideCall);
+    void randomiseRelayStates();
+    void editByte(const UCHAR &byte);
 
 private:
     const QByteArray SYNC_MESSAGE = QByteArray::fromHex("00800010");
@@ -34,7 +36,6 @@ private:
     void formDefaultAnswer(const QByteArray& message);
     void formIdentificationMessage();
     void addState(const UCHAR& type, const QByteArray& data);
-    void randomiseRelayStates();
 
     QByteArray addMarkerBytes(const QByteArray& input);
     QByteArray transformToData(const QByteArray& input);

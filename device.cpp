@@ -4,9 +4,11 @@
 
 Device::Device(QObject *parent)
     : QObject{parent},
+    _autoRegen(true),
     connectionTimer(new QTimer(this)),
     disconnectionTimer(new QTimer(this)),
-    statusTimer(new QTimer(this))
+    sendStatusTimer(new QTimer(this)),
+    changeStatusTimer(new QTimer(this))
 {
 
 }
@@ -25,7 +27,8 @@ Device::Device(const QString &phone, const QString &name, Logger *logger, QObjec
 
     connect(connectionTimer, &QTimer::timeout, this, &Device::onConnectionTimerTimeout);
     connect(disconnectionTimer, &QTimer::timeout, this, &Device::onDisconnectionTimerTimeout);
-    connect(statusTimer, &QTimer::timeout, this, &Device::onStatusTimerTimeout);
+    connect(sendStatusTimer, &QTimer::timeout, this, &Device::onSendStatusTimerTimeout);
+    connect(changeStatusTimer, &QTimer::timeout, this, &Device::onChangeStatusTimeTimeout);
 }
 
 Device::~Device()
@@ -33,7 +36,8 @@ Device::~Device()
     stopWork();
     delete connectionTimer;
     delete disconnectionTimer;
-    delete statusTimer;
+    delete sendStatusTimer;
+    delete changeStatusTimer;
 
     if (_client->isConnected())
         _client->disconnectFromServer();
@@ -64,6 +68,11 @@ void Device::setPort(const quint16 &port)
     _port = port;
 }
 
+void Device::setAutoRegen(const bool &regen)
+{
+    _autoRegen = regen;
+}
+
 void Device::setConnectionInterval(const int &interval)
 {
     _connectionInterval = interval;
@@ -78,6 +87,11 @@ void Device::setDisconnectionInterval(const int &from, const int &to)
 void Device::setSendStatusInterval(const int &interval)
 {
     _sendStatusInterval = interval;
+}
+
+void Device::setChangeStatusInterval(const int &interval)
+{
+    _changeStatusInterval = interval;
 }
 
 void Device::startWork()
@@ -96,15 +110,24 @@ void Device::stopWork()
         disconnectionTimer->stop();
         _client->disconnectFromServer();
     }
-    if (statusTimer->isActive())
+    if (sendStatusTimer->isActive())
     {
-        statusTimer->stop();
+        sendStatusTimer->stop();
+    }
+    if (changeStatusTimer->isActive())
+    {
+        changeStatusTimer->stop();
     }
 }
 
 void Device::debugConnect(const QString &serverAddress, quint16 serverPort)
 {
     _client->connectToServer(serverAddress, serverPort);
+}
+
+void Device::editByte(const UCHAR &byte)
+{
+    _client->editByte(byte);
 }
 
 void Device::startConnectionTimer()
@@ -121,9 +144,14 @@ void Device::startDisconnectionTimer()
     disconnectionTimer->start(randomInterval);
 }
 
-void Device::startStatusTimer()
+void Device::startSendStatusTimer()
 {
-    statusTimer->start(_sendStatusInterval);
+    sendStatusTimer->start(_sendStatusInterval);
+}
+
+void Device::startChangeStatusTimer()
+{
+    changeStatusTimer->start(_changeStatusInterval);
 }
 
 int Device::phoneToId()
@@ -148,19 +176,28 @@ void Device::onConnectionTimerTimeout()
 {
     _client->connectToServer(_ip, _port);
     connectionTimer->stop();
-    startStatusTimer();
+    startSendStatusTimer();
     startDisconnectionTimer();
+    startChangeStatusTimer();
 }
 
 void Device::onDisconnectionTimerTimeout()
 {
     _client->disconnectFromServer();
     disconnectionTimer->stop();
-    statusTimer->stop();
+    sendStatusTimer->stop();
+    changeStatusTimer->stop();
     startConnectionTimer();
 }
 
-void Device::onStatusTimerTimeout()
+void Device::onSendStatusTimerTimeout()
 {
     _client->sendState(true);
+}
+
+void Device::onChangeStatusTimeTimeout()
+{
+    if (_autoRegen)
+        _client->randomiseState();
+    else return;
 }

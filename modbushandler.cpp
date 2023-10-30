@@ -163,7 +163,7 @@ void ModbusHandler::formStateMessage(const bool &outsideCall)
     UCHAR crc[2];
 
     // DATA (Hardcode for now)
-    randomiseRelayStates();
+    // randomiseRelayStates();
 //    stateMessage.header = QByteArray::fromHex("390151756C6F6E2D43322D5363656E322C2049503A203139322E3136382E312E36342028455448292C20636F6E6E656374206661696C65640004040063");
 //    stateMessage.state02 = QByteArray::fromHex("030200");
 //    stateMessage.state24 = QByteArray::fromHex("032400");
@@ -293,6 +293,17 @@ void ModbusHandler::randomiseRelayStates()
         else if (state.type == 0x23)
         {
             state.data[0] = randomByte23;
+        }
+    }
+}
+
+void ModbusHandler::editByte(const UCHAR &byte)
+{
+    for (auto& state : stateMessage)
+    {
+        if (state.type == 0x21)
+        {
+            state.data[0] = byte;
         }
     }
 }

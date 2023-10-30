@@ -48,12 +48,24 @@ void TcpClient::sendState(const bool &outsideCall)
     _modbusHandler.formStateMessage(outsideCall);
 }
 
-void TcpClient::checkConnection()
+void TcpClient::randomiseState()
+{
+    _modbusHandler.randomiseRelayStates();
+}
+
+void TcpClient::editByte(const UCHAR &byte)
+{
+    _modbusHandler.editByte(byte);
+}
+
+bool TcpClient::checkConnection()
 {
     if (!_connected)
     {
         _logger->logWarning(tr("Устройство c ID ") + _phone + tr(" не подключено к серверу!"));
+        return false;
     }
+    else return true;
 }
 
 void TcpClient::onSocketConnected()
@@ -117,7 +129,8 @@ void TcpClient::onReplyError()
 
 void TcpClient::sendMessage(const QByteArray &message)
 {
-    checkConnection();
+    if (!checkConnection())
+        return;
     _currentMessage = message;
     _socket.write(message);
 
