@@ -60,7 +60,7 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
     // Set table headers
     QStringList headers;
     headers << tr("") << tr("ID") << tr("Имя") << tr("Статус соединения");
-    ui->tableWidget->setColumnCount(4);
+    ui->tableWidget->setColumnCount(headers.size());
     ui->tableWidget->setRowCount(devices.size());
     ui->tableWidget->setHorizontalHeaderLabels(headers);
     ui->tableWidget->setAlternatingRowColors(true);
