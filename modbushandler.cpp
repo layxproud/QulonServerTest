@@ -11,6 +11,12 @@ void ModbusHandler::setPhone(const QString &phone)
     _phone = phone;
 }
 
+void ModbusHandler::initStateMessage()
+{
+    addState(0x21, QByteArray::fromHex("00000000000000000000000000000000"));
+    addState(0x23, QByteArray::fromHex("80800000000000000000000000000000000000000000000000000000000000"));
+}
+
 void ModbusHandler::parseMessage(const QByteArray &message)
 {
     _receivedMessage = message;
@@ -157,8 +163,7 @@ void ModbusHandler::formStateMessage(const bool &outsideCall)
     UCHAR crc[2];
 
     // DATA (Hardcode for now)
-    addState(0x21, QByteArray::fromHex("00000000000000000000000000000000"));
-    addState(0x23, QByteArray::fromHex("80800000000000000000000000000000000000000000000000000000000000"));
+    randomiseRelayStates();
 //    stateMessage.header = QByteArray::fromHex("390151756C6F6E2D43322D5363656E322C2049503A203139322E3136382E312E36342028455448292C20636F6E6E656374206661696C65640004040063");
 //    stateMessage.state02 = QByteArray::fromHex("030200");
 //    stateMessage.state24 = QByteArray::fromHex("032400");
@@ -166,10 +171,7 @@ void ModbusHandler::formStateMessage(const bool &outsideCall)
 //    stateMessage.state23 = QByteArray::fromHex("212380800000000000000000000000000000000000000000000000000000000000");
 //    stateMessage.state25 = QByteArray::fromHex("2125000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
 //    stateMessage.state26 = QByteArray::fromHex("032600");
-//    quint8 randomValue = QRandomGenerator::global()->bounded(16);
-//    stateMessage.state21[1] = randomValue;
-//    randomValue = QRandomGenerator::global()->bounded(256);
-//    stateMessage.state23[1] = randomValue;
+
     QByteArray data;
     for (const FL_MODBUS_STATE_CMD_MESSAGE& message : stateMessage)
     {
@@ -274,6 +276,25 @@ void ModbusHandler::addState(const UCHAR &type, const QByteArray &data)
     newState.type = type;
     newState.data = data;
     stateMessage.push_back(newState);
+}
+
+void ModbusHandler::randomiseRelayStates()
+{
+    // first 4 bits
+    uint8_t randomByte21 = QRandomGenerator::global()->bounded(16);
+    // all 8 bits
+    uint8_t randomByte23 = QRandomGenerator::global()->bounded(256);
+    for (auto& state : stateMessage)
+    {
+        if (state.type == 0x21)
+        {
+            state.data[0] = randomByte21;
+        }
+        else if (state.type == 0x23)
+        {
+            state.data[0] = randomByte23;
+        }
+    }
 }
 
 QByteArray ModbusHandler::addMarkerBytes(const QByteArray &input)

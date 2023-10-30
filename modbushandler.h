@@ -10,6 +10,7 @@ class ModbusHandler : public QObject
 public:
     explicit ModbusHandler(QObject *parent = nullptr);
     void setPhone(const QString& phone);
+    void initStateMessage();
     void parseMessage(const QByteArray &rawMessage);
     void formStateMessage(const bool &outsideCall);
 
@@ -33,6 +34,7 @@ private:
     void formDefaultAnswer(const QByteArray& message);
     void formIdentificationMessage();
     void addState(const UCHAR& type, const QByteArray& data);
+    void randomiseRelayStates();
 
     QByteArray addMarkerBytes(const QByteArray& input);
     QByteArray transformToData(const QByteArray& input);
