@@ -9,8 +9,7 @@ class ModbusHandler : public QObject
     Q_OBJECT
 public:
     explicit ModbusHandler(QObject *parent = nullptr);
-    void setPhone(const QString& phone);
-    void initStateMessage();
+    void initModbusHandler(const QString& phone);
     void parseMessage(const QByteArray &rawMessage);
     void formStateMessage(const bool &outsideCall);
     void randomiseRelayStates();

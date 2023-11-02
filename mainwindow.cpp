@@ -32,6 +32,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->openIniFileAction, &QAction::triggered, this, &MainWindow::onOpenIniFileActionTriggered);
     connect(ui->relayManualButton, &QRadioButton::toggled, this, &MainWindow::onRelayManualButtonToggled);
     connect(ui->sendRelayBitsButton, &QPushButton::clicked, this, &MainWindow::onSendRelayBitsButtonClicked);
+    connect(ui->tableWidget->selectionModel(), &QItemSelectionModel::selectionChanged,
+            this, &MainWindow::onSelectionChanged);
 
     // Status bar
     ui->statusBar->addWidget(ui->ipLabel);
@@ -56,6 +58,8 @@ void MainWindow::closeEvent(QCloseEvent *event)
 void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
 {
     ui->tableWidget->clear();
+    ui->tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->tableWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
 
     // Set table headers
     QStringList headers;
@@ -149,19 +153,15 @@ UCHAR MainWindow::calculateByte()
 
 void MainWindow::editByteForSelected(const UCHAR& byte)
 {
-    for (int row = 0; row < ui->tableWidget->rowCount(); ++row)
+    for (const QString& deviceName : selectedDevices)
     {
-        QCheckBox* checkBox = qobject_cast<QCheckBox*>(ui->tableWidget->cellWidget(row, 0));
-        if (checkBox && checkBox->isChecked())
-        {
-            // This checkbox is selected, perform action on the corresponding Device object
-            Device* device = iniParser->devices.value(ui->tableWidget->item(row, 1)->text());
+        qDebug() << deviceName;
+        Device* device = iniParser->devices.value(deviceName);
 
-            if (device)
-            {
-                qDebug () << "In " << device->getPhone() << " changing bytes";
-                device->editByte(byte);
-            }
+        if (device)
+        {
+            qDebug () << "In " << device->getPhone() << " changing bytes";
+            device->editByte(byte);
         }
     }
 }
@@ -302,6 +302,25 @@ void MainWindow::onSendRelayBitsButtonClicked()
     editByteForSelected(resultByte);
 
     qDebug() << "Result Byte: " << QString::number(resultByte, 16);
+}
+
+void MainWindow::onSelectionChanged(const QItemSelection &selected, const QItemSelection &deselected)
+{
+    for (const auto &index : selected.indexes())
+    {
+        if (index.column() == 1)
+        {
+            selectedDevices.insert(ui->tableWidget->item(index.row(), 1)->text());
+        }
+    }
+
+    for (const auto &index : deselected.indexes())
+    {
+        if (index.column() == 1)
+        {
+            selectedDevices.remove(ui->tableWidget->item(index.row(), 1)->text());
+        }
+    }
 }
 
 

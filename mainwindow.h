@@ -48,6 +48,8 @@ private:
     static constexpr int DEFAULT_CHANGE_STATUS_MIN_BOX = 0;
     static constexpr int DEFAULT_CHANGE_STATUS_SEC_BOX = 30;
 
+    QSet<QString> selectedDevices;
+
 private:
     void populateDeviceTable(const QMap<QString, Device*> &devices);
     void updateDeviceDefaults();
@@ -64,5 +66,6 @@ private slots:
     void updateDeviceStatus(QTableWidgetItem* item, const QString &status);
     void onRelayManualButtonToggled(bool checked);
     void onSendRelayBitsButtonClicked();
+    void onSelectionChanged(const QItemSelection &selected, const QItemSelection &deselected);
 };
 #endif // MAINWINDOW_H

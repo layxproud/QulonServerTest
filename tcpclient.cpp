@@ -17,8 +17,7 @@ TcpClient::TcpClient(Logger* logger, const QString& phone, QObject *parent)
     connect(&_modbusHandler, &ModbusHandler::unknownCommand, this, &TcpClient::onUnknownCommand);
     connect(&_modbusHandler, &ModbusHandler::replyError, this, &TcpClient::onReplyError);
 
-    _modbusHandler.setPhone(_phone);
-    _modbusHandler.initStateMessage();
+    _modbusHandler.initModbusHandler(_phone);
 }
 
 

@@ -6,15 +6,15 @@ ModbusHandler::ModbusHandler(QObject *parent)
 
 }
 
-void ModbusHandler::setPhone(const QString &phone)
+void ModbusHandler::initModbusHandler(const QString &phone)
 {
     _phone = phone;
-}
 
-void ModbusHandler::initStateMessage()
-{
     addState(0x21, QByteArray::fromHex("00000000000000000000000000000000"));
     addState(0x23, QByteArray::fromHex("80800000000000000000000000000000000000000000000000000000000000"));
+
+    _myAddr = 0xD0;
+    _serverAddr = 0x00;
 }
 
 void ModbusHandler::parseMessage(const QByteArray &message)
@@ -41,7 +41,6 @@ void ModbusHandler::parseMessage(const QByteArray &message)
             FL_MODBUS_MESSAGE modbusMessage;
             memcpy(&modbusMessage, rawMessage.constData(), sizeof(FL_MODBUS_MESSAGE));
             _serverAddr = modbusMessage.sour_address;
-            _myAddr = modbusMessage.dist_address;
 
             // DATA
             int dataLength = modbusMessage.len;
@@ -131,10 +130,10 @@ void ModbusHandler::formDefaultAnswer(const QByteArray &message)
     FL_MODBUS_MESSAGE modbusMessage;
     modbusMessage.tx_id = _currTx + 0x01;
     modbusMessage.rx_id = _currRx + 0x01;
-    modbusMessage.dist_addressMB = message[2];
+    modbusMessage.dist_addressMB = _myAddr;
     modbusMessage.FUNCT = message[3];
-    modbusMessage.sour_address = message[5];
-    modbusMessage.dist_address = message[4];
+    modbusMessage.sour_address = _myAddr;
+    modbusMessage.dist_address = _serverAddr;
     modbusMessage.command = message[6] + 0x80;
     modbusMessage.len = 0x00;
     QByteArray header(reinterpret_cast<const char*>(&modbusMessage), sizeof(modbusMessage));
