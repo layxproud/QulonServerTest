@@ -282,27 +282,30 @@ void ModbusHandler::randomiseRelayStates()
     // first 4 bits
     uint8_t randomByte21 = QRandomGenerator::global()->bounded(16);
     // all 8 bits
-    uint8_t randomByte23 = QRandomGenerator::global()->bounded(256);
+    uint8_t randomByte23_1 = QRandomGenerator::global()->bounded(256);
+    uint8_t randomByte23_2 = QRandomGenerator::global()->bounded(256);
     for (auto& state : stateMessage)
     {
         if (state.type == 0x21)
         {
             state.data[0] = randomByte21;
         }
-        else if (state.type == 0x23)
+        if (state.type == 0x23)
         {
-            state.data[0] = randomByte23;
+            state.data[0] = randomByte23_1;
+            state.data[1] = randomByte23_2;
         }
     }
 }
 
-void ModbusHandler::editByte(const UCHAR &byte)
+void ModbusHandler::editByte(const UCHAR &stateByte, const QByteArray &byte)
 {
     for (auto& state : stateMessage)
     {
-        if (state.type == 0x21)
+        if (state.type == stateByte)
         {
-            state.data[0] = byte;
+            for (int i = 0; i < byte.size(); i++)
+                state.data[i] = byte[i];
         }
     }
 }

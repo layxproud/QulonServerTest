@@ -125,9 +125,9 @@ void Device::debugConnect(const QString &serverAddress, quint16 serverPort)
     _client->connectToServer(serverAddress, serverPort);
 }
 
-void Device::editByte(const UCHAR &byte)
+void Device::editByte(const UCHAR &stateByte, const QByteArray &byte)
 {
-    _client->editByte(byte);
+    _client->editByte(stateByte, byte);
 }
 
 void Device::startConnectionTimer()

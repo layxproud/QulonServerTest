@@ -13,7 +13,7 @@ public:
     void parseMessage(const QByteArray &rawMessage);
     void formStateMessage(const bool &outsideCall);
     void randomiseRelayStates();
-    void editByte(const UCHAR &byte);
+    void editByte(const UCHAR &stateByte, const QByteArray &byte);
 
 private:
     const QByteArray SYNC_MESSAGE = QByteArray::fromHex("00800010");

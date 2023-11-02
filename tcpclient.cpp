@@ -52,9 +52,9 @@ void TcpClient::randomiseState()
     _modbusHandler.randomiseRelayStates();
 }
 
-void TcpClient::editByte(const UCHAR &byte)
+void TcpClient::editByte(const UCHAR &stateByte, const QByteArray &byte)
 {
-    _modbusHandler.editByte(byte);
+    _modbusHandler.editByte(stateByte, byte);
 }
 
 bool TcpClient::checkConnection()

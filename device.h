@@ -33,7 +33,7 @@ public:
     void stopWork();
 
     void debugConnect(const QString &serverAddress, quint16 serverPort);
-    void editByte(const UCHAR &byte);
+    void editByte(const UCHAR &stateByte, const QByteArray &byte);
 
 private:
     QString _phone;

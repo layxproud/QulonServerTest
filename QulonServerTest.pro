@@ -20,6 +20,7 @@ SOURCES += \
 
 HEADERS += \
     Prot.h \
+    checkboxheader.h \
     device.h \
     iniparser.h \
     logger.h \

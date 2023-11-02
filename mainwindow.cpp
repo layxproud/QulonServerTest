@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "checkboxheader.h"
 #include <QDebug>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -31,7 +32,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->saveValuesButton, &QCheckBox::stateChanged, this, &MainWindow::onSaveValuesButtonStateChanged);
     connect(ui->openIniFileAction, &QAction::triggered, this, &MainWindow::onOpenIniFileActionTriggered);
     connect(ui->relayManualButton, &QRadioButton::toggled, this, &MainWindow::onRelayManualButtonToggled);
-    connect(ui->sendRelayBitsButton, &QPushButton::clicked, this, &MainWindow::onSendRelayBitsButtonClicked);
+    connect(ui->sendState21BitsButton, &QPushButton::clicked, this, &MainWindow::onSendState21BitsButtonClicked);
+    connect(ui->sendState23BitsButton, &QPushButton::clicked, this, &MainWindow::onSendState23BitsButtonClicked);
     connect(ui->tableWidget->selectionModel(), &QItemSelectionModel::selectionChanged,
             this, &MainWindow::onSelectionChanged);
 
@@ -61,12 +63,13 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
     ui->tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->tableWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
 
-    // Set table headers
     QStringList headers;
     headers << tr("") << tr("ID") << tr("Имя") << tr("Статус соединения");
+    ui->tableWidget->setHorizontalHeaderLabels(headers);
+
+    // Height Width
     ui->tableWidget->setColumnCount(headers.size());
     ui->tableWidget->setRowCount(devices.size());
-    ui->tableWidget->setHorizontalHeaderLabels(headers);
     ui->tableWidget->setAlternatingRowColors(true);
 
     // Size Policy
@@ -98,6 +101,19 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
 
         ++row;
     }
+
+    // Header
+    QCheckBox *headerCheckBox = new QCheckBox(ui->tableWidget->horizontalHeader());
+    int firstColumnWidth = ui->tableWidget->columnWidth(0);
+    int headerHeight = ui->tableWidget->horizontalHeader()->height();
+    headerCheckBox->setGeometry(0, 0, firstColumnWidth, headerHeight);
+
+    connect(ui->tableWidget->horizontalHeader(), &QHeaderView::sectionResized, this, [=](int logicalIndex, int oldSize, int newSize) {
+        if (logicalIndex == 0)
+        {
+            headerCheckBox->setGeometry(0, 0, newSize, headerHeight);
+        }
+    });
 }
 
 void MainWindow::updateDeviceDefaults()
@@ -115,7 +131,7 @@ void MainWindow::updateDeviceDefaults()
         device->setChangeStatusInterval(changeStatusInterval);
         device->setAutoRegen(ui->relayAutoButton->isChecked());
     }
-    editByteForSelected(calculateByte());
+    editByteForSelected(getCurrentTab(), calculateByte());
 }
 
 void MainWindow::initSpinBoxes()
@@ -134,24 +150,67 @@ void MainWindow::enableSpinBoxes(const bool &arg)
     }
 }
 
-UCHAR MainWindow::calculateByte()
+QByteArray MainWindow::calculateByte()
 {
+    QByteArray calculatedByte;
     UCHAR resultByte = 0;
+    switch (ui->relayStates->currentIndex())
+    {
+        case 0:
+            if (ui->state21_bit0->isChecked()) resultByte |= 0x01;
+            if (ui->state21_bit1->isChecked()) resultByte |= 0x02;
+            if (ui->state21_bit2->isChecked()) resultByte |= 0x04;
+            if (ui->state21_bit3->isChecked()) resultByte |= 0x08;
+            if (ui->state21_bit4->isChecked()) resultByte |= 0x10;
+            if (ui->state21_bit5->isChecked()) resultByte |= 0x20;
+            if (ui->state21_bit6->isChecked()) resultByte |= 0x40;
+            if (ui->state21_bit7->isChecked()) resultByte |= 0x80;
+            calculatedByte.append(resultByte);
+            break;
+        case 1:
+            if (ui->state23_bit0->isChecked()) resultByte |= 0x01;
+            if (ui->state23_bit1->isChecked()) resultByte |= 0x02;
+            if (ui->state23_bit2->isChecked()) resultByte |= 0x04;
+            if (ui->state23_bit3->isChecked()) resultByte |= 0x08;
+            if (ui->state23_bit4->isChecked()) resultByte |= 0x10;
+            if (ui->state23_bit5->isChecked()) resultByte |= 0x20;
+            if (ui->state23_bit6->isChecked()) resultByte |= 0x40;
+            if (ui->state23_bit7->isChecked()) resultByte |= 0x80;
+            calculatedByte.append(resultByte);
+            resultByte = 0;
+            if (ui->state23_bit8->isChecked()) resultByte |= 0x01;
+            if (ui->state23_bit9->isChecked()) resultByte |= 0x02;
+            if (ui->state23_bit10->isChecked()) resultByte |= 0x04;
+            if (ui->state23_bit11->isChecked()) resultByte |= 0x08;
+            if (ui->state23_bit12->isChecked()) resultByte |= 0x10;
+            if (ui->state23_bit13->isChecked()) resultByte |= 0x20;
+            if (ui->state23_bit14->isChecked()) resultByte |= 0x40;
+            if (ui->state23_bit15->isChecked()) resultByte |= 0x80;
+            calculatedByte.append(resultByte);
+    default:
+        break;
+    }
 
-    // Получаем состояния чекбоксов и устанавливаем соответствующие биты в байте
-    if (ui->bit0->isChecked()) resultByte |= 0x01;
-    if (ui->bit1->isChecked()) resultByte |= 0x02;
-    if (ui->bit2->isChecked()) resultByte |= 0x04;
-    if (ui->bit3->isChecked()) resultByte |= 0x08;
-    if (ui->bit4->isChecked()) resultByte |= 0x10;
-    if (ui->bit5->isChecked()) resultByte |= 0x20;
-    if (ui->bit6->isChecked()) resultByte |= 0x40;
-    if (ui->bit7->isChecked()) resultByte |= 0x80;
-
-    return resultByte;
+    return calculatedByte;
 }
 
-void MainWindow::editByteForSelected(const UCHAR& byte)
+UCHAR MainWindow::getCurrentTab()
+{
+    UCHAR result = 0;
+    switch (ui->relayStates->currentIndex())
+    {
+        case 0:
+            result = 0x21;
+            break;
+        case 1:
+            result = 0x23;
+        default:
+            break;
+    }
+    return result;
+}
+
+void MainWindow::editByteForSelected(const UCHAR &stateByte, const QByteArray &byte)
 {
     for (const QString& deviceName : selectedDevices)
     {
@@ -161,7 +220,7 @@ void MainWindow::editByteForSelected(const UCHAR& byte)
         if (device)
         {
             qDebug () << "In " << device->getPhone() << " changing bytes";
-            device->editByte(byte);
+            device->editByte(stateByte, byte);
         }
     }
 }
@@ -237,7 +296,7 @@ void MainWindow::onOpenIniFileActionTriggered()
 {
     QString filePath = QFileDialog::getOpenFileName(this,
                                                     tr("Выберите ini файл"),
-                                                    QDir::homePath(),
+                                                    QApplication::applicationDirPath(),
                                                     tr("Config files (*.ini)"));
 
     if (filePath.isEmpty())
@@ -278,30 +337,51 @@ void MainWindow::updateDeviceStatus(QTableWidgetItem *item, const QString &statu
 
 void MainWindow::onRelayManualButtonToggled(bool checked)
 {
-    ui->bit0->setEnabled(checked);
-    ui->bit1->setEnabled(checked);
-    ui->bit2->setEnabled(checked);
-    ui->bit3->setEnabled(checked);
-    ui->bit4->setEnabled(checked);
-    ui->bit5->setEnabled(checked);
-    ui->bit6->setEnabled(checked);
-    ui->bit7->setEnabled(checked);
-    ui->sendRelayBitsButton->setEnabled(checked);
+    ui->state21_bit0->setEnabled(checked);
+    ui->state21_bit1->setEnabled(checked);
+    ui->state21_bit2->setEnabled(checked);
+    ui->state21_bit3->setEnabled(checked);
+    ui->state21_bit4->setEnabled(checked);
+    ui->state21_bit5->setEnabled(checked);
+    ui->state21_bit6->setEnabled(checked);
+    ui->state21_bit7->setEnabled(checked);
+    ui->sendState21BitsButton->setEnabled(checked);
+
+    ui->state23_bit0->setEnabled(checked);
+    ui->state23_bit1->setEnabled(checked);
+    ui->state23_bit2->setEnabled(checked);
+    ui->state23_bit3->setEnabled(checked);
+    ui->state23_bit4->setEnabled(checked);
+    ui->state23_bit5->setEnabled(checked);
+    ui->state23_bit6->setEnabled(checked);
+    ui->state23_bit7->setEnabled(checked);
+    ui->state23_bit8->setEnabled(checked);
+    ui->state23_bit9->setEnabled(checked);
+    ui->state23_bit10->setEnabled(checked);
+    ui->state23_bit11->setEnabled(checked);
+    ui->state23_bit12->setEnabled(checked);
+    ui->state23_bit13->setEnabled(checked);
+    ui->state23_bit14->setEnabled(checked);
+    ui->state23_bit15->setEnabled(checked);
+    ui->sendState23BitsButton->setEnabled(checked);
 
     // disable auto regen in devices
     for(auto& device : iniParser->devices)
-    {
         device->setAutoRegen(!checked);
-    }
 }
 
-void MainWindow::onSendRelayBitsButtonClicked()
+void MainWindow::onSendState23BitsButtonClicked()
 {
-    UCHAR resultByte = calculateByte();
+    editByteForSelected(0x23, calculateByte());
 
-    editByteForSelected(resultByte);
+    qDebug() << "Result Byte: " << calculateByte();
+}
 
-    qDebug() << "Result Byte: " << QString::number(resultByte, 16);
+void MainWindow::onSendState21BitsButtonClicked()
+{
+    editByteForSelected(0x21, calculateByte());
+
+    qDebug() << "Result Byte: " << calculateByte();
 }
 
 void MainWindow::onSelectionChanged(const QItemSelection &selected, const QItemSelection &deselected)

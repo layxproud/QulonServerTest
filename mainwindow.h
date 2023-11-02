@@ -55,8 +55,9 @@ private:
     void updateDeviceDefaults();
     void initSpinBoxes();
     void enableSpinBoxes(const bool &arg);
-    UCHAR calculateByte();
-    void editByteForSelected(const UCHAR &byte);
+    QByteArray calculateByte();
+    UCHAR getCurrentTab();
+    void editByteForSelected(const UCHAR &stateByte, const QByteArray &byte);
 
 private slots:
     void onConnectButtonClicked();
@@ -65,7 +66,8 @@ private slots:
     void onSaveValuesButtonStateChanged(int state);
     void updateDeviceStatus(QTableWidgetItem* item, const QString &status);
     void onRelayManualButtonToggled(bool checked);
-    void onSendRelayBitsButtonClicked();
+    void onSendState21BitsButtonClicked();
+    void onSendState23BitsButtonClicked();
     void onSelectionChanged(const QItemSelection &selected, const QItemSelection &deselected);
 };
 #endif // MAINWINDOW_H

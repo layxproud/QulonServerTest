@@ -19,7 +19,7 @@ public:
     void disconnectFromServer();
     void sendState(const bool &outsideCall);
     void randomiseState();
-    void editByte(const UCHAR &byte);
+    void editByte(const UCHAR &stateByte, const QByteArray &byte);
 
 private:
     QString _phone;
