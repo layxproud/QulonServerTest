@@ -26,6 +26,8 @@ MainWindow::MainWindow(QWidget *parent)
     initSpinBoxes();
     enableSpinBoxes(true);
 
+    initStatusBar();
+
     // GUI connects
     connect(ui->multiConnectButton, &QPushButton::clicked, this, &MainWindow::onMultiConnectButtonClicked);
     connect(ui->connectButton, &QPushButton::clicked, this, &MainWindow::onConnectButtonClicked);
@@ -35,12 +37,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->sendState21BitsButton, &QPushButton::clicked, this, &MainWindow::onSendState21BitsButtonClicked);
     connect(ui->sendState23BitsButton, &QPushButton::clicked, this, &MainWindow::onSendState23BitsButtonClicked);
     connect(ui->tableWidget->selectionModel(), &QItemSelectionModel::selectionChanged, this, &MainWindow::onSelectionChanged);
-
-    // Status bar
-    ui->statusBar->addWidget(ui->ipLabel);
-    ui->statusBar->addWidget(ui->ipValue);
-    ui->statusBar->addWidget(ui->portLabel);
-    ui->statusBar->addWidget(ui->portValue);
 }
 
 MainWindow::~MainWindow()
@@ -54,6 +50,19 @@ void MainWindow::closeEvent(QCloseEvent *event)
         logger->disableGUI();
 
     QMainWindow::closeEvent(event);
+}
+
+void MainWindow::initStatusBar()
+{
+    ipLabel = new QLabel("IP:");
+    ipValue = new QLabel("");
+    portLabel = new QLabel("Port:");
+    portValue = new QLabel("");
+
+    ui->statusBar->addWidget(ipLabel);
+    ui->statusBar->addWidget(ipValue);
+    ui->statusBar->addWidget(portLabel);
+    ui->statusBar->addWidget(portValue);
 }
 
 void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
@@ -117,11 +126,11 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
 
 void MainWindow::updateDeviceDefaults()
 {
-    int connectionInterval = ui->conIntMinBox->value() * 60 * 1000 + ui->conIntSecBox->value() * 1000;
-    int disconnectionFromInterval = ui->discIntFromMinBox->value() * 60 * 1000 + ui->discIntFromSecBox->value() * 1000;
-    int disconnectionToInterval = ui->discIntToMinBox->value() * 60 * 1000 + ui->discIntToSecBox->value() * 1000;
-    int sendStatusInterval = ui->sendStatusIntMinBox->value() * 60 * 1000 + ui->sendStatusIntSecBox->value() * 1000;
-    int changeStatusInterval = ui->changeStatusIntMinBox->value() * 60 * 1000 + ui->changeStatusIntSecBox->value() * 1000;
+    int connectionInterval = ui->conIntMinBox->value() * SEC * MILSEC + ui->conIntSecBox->value() * MILSEC;
+    int disconnectionFromInterval = ui->discIntFromMinBox->value() * SEC * MILSEC + ui->discIntFromSecBox->value() * MILSEC;
+    int disconnectionToInterval = ui->discIntToMinBox->value() * SEC * MILSEC + ui->discIntToSecBox->value() * MILSEC;
+    int sendStatusInterval = ui->sendStatusIntMinBox->value() * SEC * MILSEC + ui->sendStatusIntSecBox->value() * MILSEC;
+    int changeStatusInterval = ui->changeStatusIntMinBox->value() * SEC * MILSEC + ui->changeStatusIntSecBox->value() * MILSEC;
     for(const auto& device : iniParser->devices)
     {
         device->setConnectionInterval(connectionInterval);
@@ -130,7 +139,7 @@ void MainWindow::updateDeviceDefaults()
         device->setChangeStatusInterval(changeStatusInterval);
         device->setAutoRegen(ui->relayAutoButton->isChecked());
     }
-    editByteForSelected(getCurrentTab(), calculateByte());
+    // editByteForSelected(getCurrentTab(), calculateByte());
 }
 
 void MainWindow::initSpinBoxes()
@@ -151,8 +160,8 @@ void MainWindow::enableSpinBoxes(const bool &arg)
 
 QByteArray MainWindow::calculateByte()
 {
-    QByteArray calculatedByte;
-    UCHAR resultByte = 0;
+    QByteArray calculatedByte{};
+    UCHAR resultByte{};
     switch (ui->relayStates->currentIndex())
     {
         case 0:
@@ -313,8 +322,8 @@ void MainWindow::onOpenIniFileActionTriggered()
     iniParser->clearData();
     iniParser->parseIniFile(filePath);
     populateDeviceTable(iniParser->devices);
-    ui->ipValue->setText(iniParser->gprsSettings["ip"]);
-    ui->portValue->setText(iniParser->gprsSettings["port"]);
+    ipValue->setText(iniParser->gprsSettings["ip"]);
+    portValue->setText(iniParser->gprsSettings["port"]);
 }
 
 void MainWindow::onSaveValuesButtonStateChanged(int state)
@@ -355,15 +364,11 @@ void MainWindow::onRelayManualButtonToggled(bool checked)
 void MainWindow::onSendState23BitsButtonClicked()
 {
     editByteForSelected(0x23, calculateByte());
-
-    qDebug() << "Result Byte: " << calculateByte();
 }
 
 void MainWindow::onSendState21BitsButtonClicked()
 {
     editByteForSelected(0x21, calculateByte());
-
-    qDebug() << "Result Byte: " << calculateByte();
 }
 
 void MainWindow::onSelectionChanged(const QItemSelection &selected, const QItemSelection &deselected)

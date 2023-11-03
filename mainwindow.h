@@ -6,6 +6,7 @@
 #include <QInputDialog>
 #include <QTableWidget>
 #include <QSpinBox>
+#include <QLabel>
 #include "iniparser.h"
 #include "logger.h"
 
@@ -36,6 +37,8 @@ private:
     IniParser* iniParser;
 
     bool isRunning;
+
+    // GUI elements
     SpinBoxInfo spinBoxes[10];
     static constexpr int DEFAULT_CONNECT_MIN_BOX = 1;
     static constexpr int DEFAULT_CONNECT_SEC_BOX = 0;
@@ -48,9 +51,15 @@ private:
     static constexpr int DEFAULT_CHANGE_STATUS_MIN_BOX = 0;
     static constexpr int DEFAULT_CHANGE_STATUS_SEC_BOX = 30;
 
+    QLabel* ipLabel;
+    QLabel* ipValue;
+    QLabel* portLabel;
+    QLabel* portValue;
+
     QSet<QString> selectedDevices;
 
 private:
+    void initStatusBar();
     void populateDeviceTable(const QMap<QString, Device*> &devices);
     void updateDeviceDefaults();
     void initSpinBoxes();
