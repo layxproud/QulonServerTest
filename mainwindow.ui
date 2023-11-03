@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1033</width>
-    <height>655</height>
+    <width>1040</width>
+    <height>784</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -155,11 +155,11 @@
          </sizepolicy>
         </property>
         <property name="currentIndex">
-         <number>1</number>
+         <number>0</number>
         </property>
         <widget class="QWidget" name="state21">
          <attribute name="title">
-          <string>21</string>
+          <string>Relay</string>
          </attribute>
          <layout class="QGridLayout" name="gridLayout_3">
           <item row="1" column="2">
@@ -403,7 +403,7 @@
         </widget>
         <widget class="QWidget" name="state23">
          <attribute name="title">
-          <string>23</string>
+          <string>Inputs</string>
          </attribute>
          <layout class="QGridLayout" name="gridLayout_2">
           <item row="0" column="5">
@@ -1281,7 +1281,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1033</width>
+     <width>1040</width>
      <height>21</height>
     </rect>
    </property>

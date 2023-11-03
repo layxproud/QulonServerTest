@@ -34,8 +34,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->relayManualButton, &QRadioButton::toggled, this, &MainWindow::onRelayManualButtonToggled);
     connect(ui->sendState21BitsButton, &QPushButton::clicked, this, &MainWindow::onSendState21BitsButtonClicked);
     connect(ui->sendState23BitsButton, &QPushButton::clicked, this, &MainWindow::onSendState23BitsButtonClicked);
-    connect(ui->tableWidget->selectionModel(), &QItemSelectionModel::selectionChanged,
-            this, &MainWindow::onSelectionChanged);
+    connect(ui->tableWidget->selectionModel(), &QItemSelectionModel::selectionChanged, this, &MainWindow::onSelectionChanged);
 
     // Status bar
     ui->statusBar->addWidget(ui->ipLabel);
@@ -337,33 +336,16 @@ void MainWindow::updateDeviceStatus(QTableWidgetItem *item, const QString &statu
 
 void MainWindow::onRelayManualButtonToggled(bool checked)
 {
-    ui->state21_bit0->setEnabled(checked);
-    ui->state21_bit1->setEnabled(checked);
-    ui->state21_bit2->setEnabled(checked);
-    ui->state21_bit3->setEnabled(checked);
-    ui->state21_bit4->setEnabled(checked);
-    ui->state21_bit5->setEnabled(checked);
-    ui->state21_bit6->setEnabled(checked);
-    ui->state21_bit7->setEnabled(checked);
-    ui->sendState21BitsButton->setEnabled(checked);
-
-    ui->state23_bit0->setEnabled(checked);
-    ui->state23_bit1->setEnabled(checked);
-    ui->state23_bit2->setEnabled(checked);
-    ui->state23_bit3->setEnabled(checked);
-    ui->state23_bit4->setEnabled(checked);
-    ui->state23_bit5->setEnabled(checked);
-    ui->state23_bit6->setEnabled(checked);
-    ui->state23_bit7->setEnabled(checked);
-    ui->state23_bit8->setEnabled(checked);
-    ui->state23_bit9->setEnabled(checked);
-    ui->state23_bit10->setEnabled(checked);
-    ui->state23_bit11->setEnabled(checked);
-    ui->state23_bit12->setEnabled(checked);
-    ui->state23_bit13->setEnabled(checked);
-    ui->state23_bit14->setEnabled(checked);
-    ui->state23_bit15->setEnabled(checked);
-    ui->sendState23BitsButton->setEnabled(checked);
+    QList<QCheckBox*> checkBoxes = ui->relayStates->findChildren<QCheckBox*>();
+    QList<QPushButton*> pushButtons = ui->relayStates->findChildren<QPushButton*>();
+    for (QCheckBox* checkBox : checkBoxes)
+    {
+        checkBox->setEnabled(checked);
+    }
+    for (QPushButton* pushButton : pushButtons)
+    {
+        pushButton->setEnabled(checked);
+    }
 
     // disable auto regen in devices
     for(auto& device : iniParser->devices)
