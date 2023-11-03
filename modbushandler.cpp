@@ -308,6 +308,8 @@ void ModbusHandler::editByte(const UCHAR &stateByte, const QByteArray &byte)
                 state.data[i] = byte[i];
         }
     }
+    // I THINK IT SHOULD BE FALSE BUT NOT SURE. ON QulonPanel IT WORKS FINE WITH FALSE
+    formStateMessage(false);
 }
 
 QByteArray ModbusHandler::addMarkerBytes(const QByteArray &input)

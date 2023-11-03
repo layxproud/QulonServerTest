@@ -20,6 +20,7 @@ public:
     void sendState(const bool &outsideCall);
     void randomiseState();
     void editByte(const UCHAR &stateByte, const QByteArray &byte);
+    void editLogStatus(const bool &status);
 
 private:
     QString _phone;
@@ -28,6 +29,7 @@ private:
     QByteArray _currentMessage;
     QByteArray _receivedMessage;
     ModbusHandler _modbusHandler;
+    bool _logAllowed;
 
     Logger* _logger;
 

@@ -4,6 +4,7 @@ TcpClient::TcpClient(Logger* logger, const QString& phone, QObject *parent)
     : QObject{parent},
     _phone{phone},
     _connected{false},
+    _logAllowed(true),
     _logger{logger}
 {
     connect(&_socket, &QTcpSocket::connected, this, &TcpClient::onSocketConnected);
@@ -57,11 +58,18 @@ void TcpClient::editByte(const UCHAR &stateByte, const QByteArray &byte)
     _modbusHandler.editByte(stateByte, byte);
 }
 
+void TcpClient::editLogStatus(const bool &status)
+{
+    _logAllowed = status;
+    qDebug () << "У устройства с ID " << _phone << " лог выставлен в " << _logAllowed;
+}
+
 bool TcpClient::checkConnection()
 {
     if (!_connected)
     {
-        _logger->logWarning(tr("Устройство c ID ") + _phone + tr(" не подключено к серверу!"));
+        if (_logAllowed)
+            _logger->logWarning(tr("Устройство c ID ") + _phone + tr(" не подключено к серверу!"));
         return false;
     }
     else return true;
@@ -70,21 +78,24 @@ bool TcpClient::checkConnection()
 void TcpClient::onSocketConnected()
 {
     _connected = true;
-    _logger->logInfo(tr("Устройство с ID ") + _phone + tr(" подключено к серверу. Выполняется синхронизация..."));
+    if (_logAllowed)
+        _logger->logInfo(tr("Устройство с ID ") + _phone + tr(" подключено к серверу. Выполняется синхронизация..."));
     emit connectionChanged(_connected);
 }
 
 void TcpClient::onSocketDisconnected()
 {
     _connected = false;
-    _logger->logInfo(tr("Устройство с ID ") + _phone + tr(" отключилось от сервера."));
+    if (_logAllowed)
+        _logger->logInfo(tr("Устройство с ID ") + _phone + tr(" отключилось от сервера."));
     emit connectionChanged(_connected);
 }
 
 void TcpClient::onSocketReadyRead()
 {
     _receivedMessage = _socket.readAll();
-    _logger->logInfo(tr("ID ") + _phone + tr(" Получило сообщение: ") + _logger->byteArrToStr(_receivedMessage));
+    if (_logAllowed)
+        _logger->logInfo(tr("ID ") + _phone + tr(" Получило сообщение: ") + _logger->byteArrToStr(_receivedMessage));
 
     _modbusHandler.parseMessage(_receivedMessage);
 }
@@ -92,7 +103,8 @@ void TcpClient::onSocketReadyRead()
 void TcpClient::onSocketError()
 {
     QString errorString = _socket.errorString();
-    _logger->logError(tr("Ошибка сокета: ") + errorString);
+    if (_logAllowed)
+        _logger->logError(tr("Ошибка сокета: ") + errorString);
 }
 
 void TcpClient::onWrongCRC(const UCHAR &expected1, const UCHAR &received1, const UCHAR &expected2, const UCHAR &received2)
@@ -103,7 +115,8 @@ void TcpClient::onWrongCRC(const UCHAR &expected1, const UCHAR &received1, const
         QString::number(received1, 16).rightJustified(2, '0'),
         QString::number(received2, 16).rightJustified(2, '0'));
 
-    _logger->logError(message);
+    if (_logAllowed)
+        _logger->logError(message);
 }
 
 void TcpClient::onWrongTx(const UCHAR &expected, const UCHAR &received)
@@ -112,18 +125,21 @@ void TcpClient::onWrongTx(const UCHAR &expected, const UCHAR &received)
         QString::number(expected, 16).rightJustified(2, '0'),
         QString::number(received, 16).rightJustified(2, '0'));
 
-    _logger->logError(message);
+    if (_logAllowed)
+        _logger->logError(message);
 }
 
 void TcpClient::onUnknownCommand(const UCHAR &command)
 {
     QString commandString = QString("0x%1").arg(command, 2, 16, QChar('0'));
-    _logger->logWarning(tr("Встречена незнакомая команда: ") + commandString + tr(" Отправляю стандартный ответ..."));
+    if (_logAllowed)
+        _logger->logWarning(tr("ID ") + _phone + tr("Встретило незнакомую команду: ") + commandString + tr(" Отправляю стандартный ответ..."));
 }
 
 void TcpClient::onReplyError()
 {
-    _logger->logError(tr("Сервер сообщил о возникшей ошибке"));
+    if (_logAllowed)
+        _logger->logError(tr("Сервер сообщил о возникшей ошибке"));
 }
 
 void TcpClient::sendMessage(const QByteArray &message)
@@ -133,5 +149,6 @@ void TcpClient::sendMessage(const QByteArray &message)
     _currentMessage = message;
     _socket.write(message);
 
-    _logger->logInfo(tr("ID ") + _phone + tr(" Отправило сообщение: ") + _logger->byteArrToStr(_currentMessage));
+    if (_logAllowed)
+        _logger->logInfo(tr("ID ") + _phone + tr(" Отправило сообщение: ") + _logger->byteArrToStr(_currentMessage));
 }

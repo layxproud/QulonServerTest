@@ -13,7 +13,6 @@ Device::Device(QObject *parent)
 
 }
 
-
 Device::Device(const QString &phone, const QString &name, Logger *logger, QObject *parent)
     : Device{parent}
 {
@@ -128,6 +127,11 @@ void Device::debugConnect(const QString &serverAddress, quint16 serverPort)
 void Device::editByte(const UCHAR &stateByte, const QByteArray &byte)
 {
     _client->editByte(stateByte, byte);
+}
+
+void Device::editLogStatus(const bool &status)
+{
+    _client->editLogStatus(status);
 }
 
 void Device::startConnectionTimer()

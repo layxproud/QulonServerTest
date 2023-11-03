@@ -1,6 +1,5 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "checkboxheader.h"
 #include <QDebug>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -27,6 +26,7 @@ MainWindow::MainWindow(QWidget *parent)
     enableSpinBoxes(true);
 
     initStatusBar();
+    initButtonGroups();
 
     // GUI connects
     connect(ui->multiConnectButton, &QPushButton::clicked, this, &MainWindow::onMultiConnectButtonClicked);
@@ -37,6 +37,10 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->sendState21BitsButton, &QPushButton::clicked, this, &MainWindow::onSendState21BitsButtonClicked);
     connect(ui->sendState23BitsButton, &QPushButton::clicked, this, &MainWindow::onSendState23BitsButtonClicked);
     connect(ui->tableWidget->selectionModel(), &QItemSelectionModel::selectionChanged, this, &MainWindow::onSelectionChanged);
+    connect(ui->enableLogForAllButton, &QRadioButton::toggled, this, &MainWindow::onEnableLogForAllButtonToggled);
+    connect(ui->enableLogForSelectedButton, &QRadioButton::toggled, this, &MainWindow::onEnableLogForSelectedButtonToggled);
+    connect(ui->disableLogButton, &QRadioButton::toggled, this, &MainWindow::onDisableLogButtonToggled);
+    connect(ui->clearLogButton, &QPushButton::clicked, this, &MainWindow::onClearLogButtonClicked);
 }
 
 MainWindow::~MainWindow()
@@ -54,15 +58,38 @@ void MainWindow::closeEvent(QCloseEvent *event)
 
 void MainWindow::initStatusBar()
 {
-    ipLabel = new QLabel("IP:");
-    ipValue = new QLabel("");
-    portLabel = new QLabel("Port:");
-    portValue = new QLabel("");
+    ipLabel = new QLabel("IP:", this);
+    ipValue = new QLabel("", this);
+    portLabel = new QLabel("Port:", this);
+    portValue = new QLabel("", this);
 
     ui->statusBar->addWidget(ipLabel);
     ui->statusBar->addWidget(ipValue);
     ui->statusBar->addWidget(portLabel);
     ui->statusBar->addWidget(portValue);
+}
+
+void MainWindow::initSpinBoxes()
+{
+    for (const SpinBoxInfo& info : spinBoxes)
+    {
+        info.spinBox->setValue(info.defaultValue);
+    }
+}
+
+void MainWindow::initButtonGroups()
+{
+    QList<QRadioButton*> relayButtonsList = ui->relayWidget->findChildren<QRadioButton*>();
+    QList<QRadioButton*> logButtonsList = ui->logWidget->findChildren<QRadioButton*>();
+
+    for (QRadioButton* button : relayButtonsList)
+    {
+        relayRadioButtons.addButton(button);
+    }
+    for (QRadioButton* button : logButtonsList)
+    {
+        logRadioButtons.addButton(button);
+    }
 }
 
 void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
@@ -73,11 +100,9 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
 
     QStringList headers;
     headers << tr("") << tr("ID") << tr("Имя") << tr("Статус соединения");
-    ui->tableWidget->setHorizontalHeaderLabels(headers);
-
-    // Height Width
     ui->tableWidget->setColumnCount(headers.size());
     ui->tableWidget->setRowCount(devices.size());
+    ui->tableWidget->setHorizontalHeaderLabels(headers);
     ui->tableWidget->setAlternatingRowColors(true);
 
     // Size Policy
@@ -86,15 +111,10 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
 
-    QMap<int, QCheckBox*> checkboxMap;
-
     int row = 0;
     for (const auto& device : devices)
     {
-        QCheckBox* checkBox = new QCheckBox();
-        ui->tableWidget->setCellWidget(row, 0, checkBox);
-        checkboxMap[row] = checkBox;
-
+        QTableWidgetItem* checkBoxItem = new QTableWidgetItem();
         QTableWidgetItem* phoneItem = new QTableWidgetItem(device->getPhone());
         QTableWidgetItem* nameItem = new QTableWidgetItem(device->getName());
         QTableWidgetItem* statusItem = new QTableWidgetItem(device->isConnected() ? tr("Подключено") : tr("Нет соединения"));
@@ -103,6 +123,7 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
             updateDeviceStatus(statusItem, status ? tr("Подключено") : tr("Нет соединения"));
         });
 
+        ui->tableWidget->setItem(row, 0, checkBoxItem);
         ui->tableWidget->setItem(row, 1, phoneItem);
         ui->tableWidget->setItem(row, 2, nameItem);
         ui->tableWidget->setItem(row, 3, statusItem);
@@ -114,6 +135,7 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
     QCheckBox *headerCheckBox = new QCheckBox(ui->tableWidget->horizontalHeader());
     int firstColumnWidth = ui->tableWidget->columnWidth(0);
     int headerHeight = ui->tableWidget->horizontalHeader()->height();
+    headerCheckBox->setVisible(true);
     headerCheckBox->setGeometry(0, 0, firstColumnWidth, headerHeight);
 
     connect(ui->tableWidget->horizontalHeader(), &QHeaderView::sectionResized, this, [=](int logicalIndex, int oldSize, int newSize) {
@@ -122,6 +144,8 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
             headerCheckBox->setGeometry(0, 0, newSize, headerHeight);
         }
     });
+
+    connect(headerCheckBox, &QCheckBox::stateChanged, this, &MainWindow::selectAllDevices);
 }
 
 void MainWindow::updateDeviceDefaults()
@@ -140,14 +164,6 @@ void MainWindow::updateDeviceDefaults()
         device->setAutoRegen(ui->relayAutoButton->isChecked());
     }
     // editByteForSelected(getCurrentTab(), calculateByte());
-}
-
-void MainWindow::initSpinBoxes()
-{
-    for (const SpinBoxInfo& info : spinBoxes)
-    {
-        info.spinBox->setValue(info.defaultValue);
-    }
 }
 
 void MainWindow::enableSpinBoxes(const bool &arg)
@@ -220,9 +236,10 @@ UCHAR MainWindow::getCurrentTab()
 
 void MainWindow::editByteForSelected(const UCHAR &stateByte, const QByteArray &byte)
 {
+    if (selectedDevices.isEmpty()) return;
+
     for (const QString& deviceName : selectedDevices)
     {
-        qDebug() << deviceName;
         Device* device = iniParser->devices.value(deviceName);
 
         if (device)
@@ -230,6 +247,26 @@ void MainWindow::editByteForSelected(const UCHAR &stateByte, const QByteArray &b
             qDebug () << "In " << device->getPhone() << " changing bytes";
             device->editByte(stateByte, byte);
         }
+    }
+}
+
+void MainWindow::selectAllDevices(const int state)
+{
+    if (ui->tableWidget->rowCount() == 0) return;
+
+    QItemSelectionModel *selectionModel = ui->tableWidget->selectionModel();
+
+    if (state == Qt::Checked)
+    {
+        for (int row = 0; row < ui->tableWidget->rowCount(); ++row)
+        {
+            QModelIndex index = ui->tableWidget->model()->index(row, 0);
+            selectionModel->select(index, QItemSelectionModel::Select | QItemSelectionModel::Rows);
+        }
+    }
+    else if (state == Qt::Unchecked)
+    {
+        selectionModel->clearSelection();
     }
 }
 \
@@ -378,6 +415,11 @@ void MainWindow::onSelectionChanged(const QItemSelection &selected, const QItemS
         if (index.column() == 1)
         {
             selectedDevices.insert(ui->tableWidget->item(index.row(), 1)->text());
+            if (ui->enableLogForSelectedButton->isChecked())
+            {
+                Device* device = iniParser->devices.value(ui->tableWidget->item(index.row(), 1)->text());
+                device->editLogStatus(true);
+            }
         }
     }
 
@@ -386,8 +428,54 @@ void MainWindow::onSelectionChanged(const QItemSelection &selected, const QItemS
         if (index.column() == 1)
         {
             selectedDevices.remove(ui->tableWidget->item(index.row(), 1)->text());
+            if (ui->enableLogForSelectedButton->isChecked())
+            {
+                Device* device = iniParser->devices.value(ui->tableWidget->item(index.row(), 1)->text());
+                device->editLogStatus(false);
+            }
         }
     }
+}
+
+void MainWindow::onEnableLogForAllButtonToggled(bool checked)
+{
+    if (iniParser->devices.isEmpty() || !checked) return;
+
+    for (Device* device : iniParser->devices)
+        if (device)
+            device->editLogStatus(checked);
+
+    qDebug() << "Включен лог для всех устройств" << checked;
+}
+
+void MainWindow::onEnableLogForSelectedButtonToggled(bool checked)
+{
+    if (selectedDevices.isEmpty() || !checked) return;
+
+    for (Device* device : iniParser->devices)
+    {
+        if (selectedDevices.contains(device->getPhone()))
+            device->editLogStatus(checked);
+        else
+            device->editLogStatus(!checked);
+    }
+    qDebug() << "Включен лог для устройств : " << selectedDevices << checked;
+}
+
+void MainWindow::onDisableLogButtonToggled(bool checked)
+{
+    if (iniParser->devices.isEmpty() || !checked) return;
+
+    for (Device* device : iniParser->devices)
+        if (device)
+            device->editLogStatus(!checked);
+
+    qDebug() << "Выключен лог для всех устройств" << checked;
+}
+
+void MainWindow::onClearLogButtonClicked()
+{
+    ui->logWindow->clear();
 }
 
 
