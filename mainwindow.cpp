@@ -28,6 +28,7 @@ MainWindow::MainWindow(QWidget *parent)
     enableSpinBoxes(true);
     initStatusBar();
     initButtonGroups();
+    ui->relayStates->setCurrentIndex(0);
 
     // GUI connects
     connect(ui->multiConnectButton, &QPushButton::clicked, this, &MainWindow::onMultiConnectButtonClicked);
@@ -62,9 +63,6 @@ void MainWindow::closeEvent(QCloseEvent *event)
 
 void MainWindow::initStatusBar()
 {
-    totalDevices = 0;
-    numOfConnected = 0;
-
     ipLabel = new QLabel("IP:", this);
     ipValue = new QLabel("", this);
     portLabel = new QLabel("Port:", this);
@@ -109,6 +107,9 @@ void MainWindow::initButtonGroups()
 
 void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
 {
+    totalDevices = 0;
+    numOfConnected = 0;
+
     ui->deviceTable->clear();
     ui->deviceTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->deviceTable->setSelectionMode(QAbstractItemView::ExtendedSelection);
@@ -207,16 +208,13 @@ QByteArray MainWindow::calculateByte()
     QByteArray calculatedByte{};
     UCHAR resultByte{};
 
-    // Получаем текущую вкладку
     int tabId = ui->relayStates->currentIndex();
     QWidget* currentTab = ui->relayStates->widget(tabId);
 
-    // Получаем все QCheckBox в текущей вкладке
     QList<QCheckBox*> checkBoxes = currentTab->findChildren<QCheckBox*>();
     std::sort(checkBoxes.begin(), checkBoxes.end(), [](const QCheckBox* a, const QCheckBox* b) {
         return a->objectName() < b->objectName();
     });
-    qDebug() << checkBoxes;
 
     // Обрабатываем каждый QCheckBox
     for (int i = 0; i < checkBoxes.size(); ++i)
@@ -248,11 +246,13 @@ void MainWindow::editByteForSelected(const UCHAR &stateByte, const QByteArray &b
     for (const QString& devicePhone : toggledDevices)
     { 
         Device* device = iniParser->devices.value(devicePhone);
-        if (device)
+        if (!device)
         {
-            qDebug () << "In " << device->getPhone() << " changing bytes";
-            device->editByte(stateByte, byte);
+            logger->logError(tr("Устройство с ID ") + devicePhone + tr(" не существует или возникла иная ошибка"));
+            continue;
         }
+        qDebug () << "In " << device->getPhone() << " changing bytes";
+        device->editByte(stateByte, byte);
     }
 }
 
@@ -276,14 +276,39 @@ void MainWindow::selectAllDevices(const int state)
 
 void MainWindow::updateCheckBoxesFromToggledDevices()
 {
+    QString devicePhone{};
     for (int row = 0; row < ui->deviceTable->rowCount(); ++row)
     {
+        devicePhone = ui->deviceTable->item(row, 1)->text();
         QCheckBox* checkBox = qobject_cast<QCheckBox*>(ui->deviceTable->cellWidget(row, 0));
 
-        if (toggledDevices.contains(ui->deviceTable->item(row, 1)->text()))
+        if (toggledDevices.contains(devicePhone))
+        {
+            // Выставление чекбокса
+            if (checkBox->isChecked()) continue;
             checkBox->setChecked(true);
+
+            // Подключение устройства если процесс уже запущен
+            if (!isRunning) continue;
+            Device* device = iniParser->devices.value(devicePhone);
+            if (!device) continue;
+            device->startWork();
+        }
+
         else
+        {
+            if (!checkBox->isChecked()) continue;
             checkBox->setChecked(false);
+
+            if (!isRunning) continue;
+            Device* device = iniParser->devices.value(devicePhone);
+            if (!device)
+            {
+                logger->logError(tr("Устройство с ID ") + devicePhone + tr(" не существует или возникла иная ошибка"));
+                continue;
+            }
+            device->stopWork();
+        }
     }
 }
 \
@@ -337,11 +362,13 @@ void MainWindow::onMultiConnectButtonClicked()
         for (const QString& devicePhone : toggledDevices)
         {
             Device* device = iniParser->devices.value(devicePhone);
-            if (device)
+            if (!device)
             {
-                qDebug () << "Starting device " << device;
-                device->startWork();
+                logger->logError(tr("Устройство с ID ") + devicePhone + tr(" не существует или возникла иная ошибка"));
+                continue;
             }
+            qDebug () << "Starting device " << device;
+            device->startWork();
         }
         ui->multiConnectButton->setText(tr("СТОП"));
         isRunning = true;
@@ -352,11 +379,13 @@ void MainWindow::onMultiConnectButtonClicked()
         for (const QString& devicePhone : toggledDevices)
         {
             Device* device = iniParser->devices.value(devicePhone);
-            if (device)
+            if (!device)
             {
-                qDebug () << "Stopping device " << device;
-                device->stopWork();
+                logger->logError(tr("Устройство с ID ") + devicePhone + tr(" не существует или возникла иная ошибка"));
+                continue;
             }
+            qDebug () << "Stopping device " << device;
+            device->stopWork();
         }
         ui->multiConnectButton->setText(tr("СТАРТ"));
         logger->logInfo(tr("Завершено!"));

@@ -69,8 +69,8 @@ private:
     QLabel* totalDevicesLabel;
     QLabel* numOfConnectedValue;
     QLabel* totalDevicesValue;
-    int numOfConnected;
     int totalDevices;
+    int numOfConnected;
 
     // Разные группы QRadioButton
     QButtonGroup relayRadioButtons;
