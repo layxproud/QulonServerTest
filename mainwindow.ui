@@ -172,7 +172,7 @@
             </attribute>
             <layout class="QGridLayout" name="gridLayout_3">
              <item row="1" column="2">
-              <widget class="QCheckBox" name="state21_bit6">
+              <widget class="QCheckBox" name="state21_bit06">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -244,7 +244,7 @@
               </widget>
              </item>
              <item row="1" column="7">
-              <widget class="QCheckBox" name="state21_bit1">
+              <widget class="QCheckBox" name="state21_bit01">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -286,7 +286,7 @@
               </widget>
              </item>
              <item row="1" column="1">
-              <widget class="QCheckBox" name="state21_bit7">
+              <widget class="QCheckBox" name="state21_bit07">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -322,7 +322,7 @@
               </widget>
              </item>
              <item row="1" column="3">
-              <widget class="QCheckBox" name="state21_bit5">
+              <widget class="QCheckBox" name="state21_bit05">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -348,7 +348,7 @@
               </widget>
              </item>
              <item row="1" column="6">
-              <widget class="QCheckBox" name="state21_bit2">
+              <widget class="QCheckBox" name="state21_bit02">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -364,7 +364,7 @@
               </widget>
              </item>
              <item row="1" column="4">
-              <widget class="QCheckBox" name="state21_bit4">
+              <widget class="QCheckBox" name="state21_bit04">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -380,7 +380,7 @@
               </widget>
              </item>
              <item row="1" column="5">
-              <widget class="QCheckBox" name="state21_bit3">
+              <widget class="QCheckBox" name="state21_bit03">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -452,7 +452,7 @@
               </widget>
              </item>
              <item row="1" column="14">
-              <widget class="QCheckBox" name="state23_bit1">
+              <widget class="QCheckBox" name="state23_bit01">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -468,7 +468,7 @@
               </widget>
              </item>
              <item row="1" column="10">
-              <widget class="QCheckBox" name="state23_bit5">
+              <widget class="QCheckBox" name="state23_bit05">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -530,7 +530,7 @@
               </widget>
              </item>
              <item row="1" column="8">
-              <widget class="QCheckBox" name="state23_bit7">
+              <widget class="QCheckBox" name="state23_bit07">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -556,7 +556,7 @@
               </widget>
              </item>
              <item row="1" column="7">
-              <widget class="QCheckBox" name="state23_bit8">
+              <widget class="QCheckBox" name="state23_bit08">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -726,7 +726,7 @@
               </widget>
              </item>
              <item row="1" column="6">
-              <widget class="QCheckBox" name="state23_bit9">
+              <widget class="QCheckBox" name="state23_bit09">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -768,7 +768,7 @@
               </widget>
              </item>
              <item row="1" column="13">
-              <widget class="QCheckBox" name="state23_bit2">
+              <widget class="QCheckBox" name="state23_bit02">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -800,7 +800,7 @@
               </widget>
              </item>
              <item row="1" column="9">
-              <widget class="QCheckBox" name="state23_bit6">
+              <widget class="QCheckBox" name="state23_bit06">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -816,7 +816,7 @@
               </widget>
              </item>
              <item row="1" column="11">
-              <widget class="QCheckBox" name="state23_bit4">
+              <widget class="QCheckBox" name="state23_bit04">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -832,7 +832,7 @@
               </widget>
              </item>
              <item row="1" column="12">
-              <widget class="QCheckBox" name="state23_bit3">
+              <widget class="QCheckBox" name="state23_bit03">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -1127,7 +1127,7 @@
               </widget>
              </item>
              <item row="1" column="6">
-              <widget class="QCheckBox" name="state25_bit9">
+              <widget class="QCheckBox" name="state25_bit09">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -1143,7 +1143,7 @@
               </widget>
              </item>
              <item row="1" column="7">
-              <widget class="QCheckBox" name="state25_bit8">
+              <widget class="QCheckBox" name="state25_bit08">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -1159,7 +1159,7 @@
               </widget>
              </item>
              <item row="1" column="8">
-              <widget class="QCheckBox" name="state25_bit7">
+              <widget class="QCheckBox" name="state25_bit07">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -1175,7 +1175,7 @@
               </widget>
              </item>
              <item row="1" column="9">
-              <widget class="QCheckBox" name="state25_bit6">
+              <widget class="QCheckBox" name="state25_bit06">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -1191,7 +1191,7 @@
               </widget>
              </item>
              <item row="1" column="10">
-              <widget class="QCheckBox" name="state25_bit5">
+              <widget class="QCheckBox" name="state25_bit05">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -1207,7 +1207,7 @@
               </widget>
              </item>
              <item row="1" column="11">
-              <widget class="QCheckBox" name="state25_bit4">
+              <widget class="QCheckBox" name="state25_bit04">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -1223,7 +1223,7 @@
               </widget>
              </item>
              <item row="1" column="12">
-              <widget class="QCheckBox" name="state25_bit3">
+              <widget class="QCheckBox" name="state25_bit03">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -1239,7 +1239,7 @@
               </widget>
              </item>
              <item row="1" column="13">
-              <widget class="QCheckBox" name="state25_bit2">
+              <widget class="QCheckBox" name="state25_bit02">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -1255,7 +1255,7 @@
               </widget>
              </item>
              <item row="1" column="14">
-              <widget class="QCheckBox" name="state25_bit1">
+              <widget class="QCheckBox" name="state25_bit01">
                <property name="enabled">
                 <bool>false</bool>
                </property>

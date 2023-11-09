@@ -8,6 +8,8 @@ MainWindow::MainWindow(QWidget *parent)
     , logger(new Logger(this))
     , iniParser(new IniParser(logger, this))
     , isRunning(false)
+    , selectedDevices{}
+    , toggledDevices{}
 {
     ui->setupUi(this);
     logger->setLogWindow(ui->logWindow);
@@ -24,7 +26,6 @@ MainWindow::MainWindow(QWidget *parent)
     spinBoxes[9] = {ui->changeStatusIntSecBox, DEFAULT_CHANGE_STATUS_SEC_BOX};
     initSpinBoxes();
     enableSpinBoxes(true);
-
     initStatusBar();
     initButtonGroups();
 
@@ -34,8 +35,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->saveValuesButton, &QCheckBox::stateChanged, this, &MainWindow::onSaveValuesButtonStateChanged);
     connect(ui->openIniFileAction, &QAction::triggered, this, &MainWindow::onOpenIniFileActionTriggered);
     connect(ui->relayManualButton, &QRadioButton::toggled, this, &MainWindow::onRelayManualButtonToggled);
-    connect(ui->sendState21BitsButton, &QPushButton::clicked, this, &MainWindow::onSendState21BitsButtonClicked);
-    connect(ui->sendState23BitsButton, &QPushButton::clicked, this, &MainWindow::onSendState23BitsButtonClicked);
+    connect(ui->sendState21BitsButton, &QPushButton::clicked, this, &MainWindow::onSendStateBitsButtonClicked);
+    connect(ui->sendState23BitsButton, &QPushButton::clicked, this, &MainWindow::onSendStateBitsButtonClicked);
+    connect(ui->sendState25BitsButton, &QPushButton::clicked, this, &MainWindow::onSendStateBitsButtonClicked);
     connect(ui->deviceTable->selectionModel(), &QItemSelectionModel::selectionChanged, this, &MainWindow::onSelectionChanged);
     connect(ui->enableLogForAllButton, &QRadioButton::toggled, this, &MainWindow::onEnableLogForAllButtonToggled);
     connect(ui->enableLogForSelectedButton, &QRadioButton::toggled, this, &MainWindow::onEnableLogForSelectedButtonToggled);
@@ -60,15 +62,26 @@ void MainWindow::closeEvent(QCloseEvent *event)
 
 void MainWindow::initStatusBar()
 {
+    totalDevices = 0;
+    numOfConnected = 0;
+
     ipLabel = new QLabel("IP:", this);
     ipValue = new QLabel("", this);
     portLabel = new QLabel("Port:", this);
     portValue = new QLabel("", this);
+    totalDevicesLabel = new QLabel(tr("Всего:"), this);
+    totalDevicesValue = new QLabel("0", this);
+    numOfConnectedLabel = new QLabel(tr("Подключено:"), this);
+    numOfConnectedValue = new QLabel("0", this);
 
     ui->statusBar->addWidget(ipLabel);
     ui->statusBar->addWidget(ipValue);
     ui->statusBar->addWidget(portLabel);
     ui->statusBar->addWidget(portValue);
+    ui->statusBar->addWidget(totalDevicesLabel);
+    ui->statusBar->addWidget(totalDevicesValue);
+    ui->statusBar->addWidget(numOfConnectedLabel);
+    ui->statusBar->addWidget(numOfConnectedValue);
 }
 
 void MainWindow::initSpinBoxes()
@@ -123,7 +136,8 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
         QTableWidgetItem* statusItem = new QTableWidgetItem(device->isConnected() ? tr("Подключено") : tr("Нет соединения"));
 
         connect(device, &Device::connectionChanged, this, [=](bool status) {
-            updateDeviceStatus(statusItem, status ? tr("Подключено") : tr("Нет соединения"));
+            status ? (updateDeviceStatus(statusItem, tr("Подключено")), numOfConnected++, numOfConnectedValue->setText(QString::number(numOfConnected))) :
+                      (updateDeviceStatus(statusItem, tr("Нет соединения")), numOfConnected--, numOfConnectedValue->setText(QString::number(numOfConnected)));
         });
 
         ui->deviceTable->setCellWidget(row, 0, checkBox);
@@ -131,7 +145,8 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
         ui->deviceTable->setItem(row, 2, nameItem);
         ui->deviceTable->setItem(row, 3, statusItem);
 
-        ++row;
+        row++;
+        totalDevices++;
     }
 
     // Header
@@ -149,6 +164,8 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
     });
 
     connect(headerCheckBox, &QCheckBox::stateChanged, this, &MainWindow::selectAllDevices);
+
+    totalDevicesValue->setText(QString::number(totalDevices));
 }
 
 void MainWindow::updateDeviceDefaults()
@@ -189,63 +206,36 @@ QByteArray MainWindow::calculateByte()
 {
     QByteArray calculatedByte{};
     UCHAR resultByte{};
-    switch (ui->relayStates->currentIndex())
+
+    // Получаем текущую вкладку
+    int tabId = ui->relayStates->currentIndex();
+    QWidget* currentTab = ui->relayStates->widget(tabId);
+
+    // Получаем все QCheckBox в текущей вкладке
+    QList<QCheckBox*> checkBoxes = currentTab->findChildren<QCheckBox*>();
+    std::sort(checkBoxes.begin(), checkBoxes.end(), [](const QCheckBox* a, const QCheckBox* b) {
+        return a->objectName() < b->objectName();
+    });
+    qDebug() << checkBoxes;
+
+    // Обрабатываем каждый QCheckBox
+    for (int i = 0; i < checkBoxes.size(); ++i)
     {
-        case 0:
-            if (ui->state21_bit0->isChecked()) resultByte |= 0x01;
-            if (ui->state21_bit1->isChecked()) resultByte |= 0x02;
-            if (ui->state21_bit2->isChecked()) resultByte |= 0x04;
-            if (ui->state21_bit3->isChecked()) resultByte |= 0x08;
-            if (ui->state21_bit4->isChecked()) resultByte |= 0x10;
-            if (ui->state21_bit5->isChecked()) resultByte |= 0x20;
-            if (ui->state21_bit6->isChecked()) resultByte |= 0x40;
-            if (ui->state21_bit7->isChecked()) resultByte |= 0x80;
-            calculatedByte.append(resultByte);
-            break;
-        case 1:
-            if (ui->state23_bit0->isChecked()) resultByte |= 0x01;
-            if (ui->state23_bit1->isChecked()) resultByte |= 0x02;
-            if (ui->state23_bit2->isChecked()) resultByte |= 0x04;
-            if (ui->state23_bit3->isChecked()) resultByte |= 0x08;
-            if (ui->state23_bit4->isChecked()) resultByte |= 0x10;
-            if (ui->state23_bit5->isChecked()) resultByte |= 0x20;
-            if (ui->state23_bit6->isChecked()) resultByte |= 0x40;
-            if (ui->state23_bit7->isChecked()) resultByte |= 0x80;
+        if (checkBoxes[i]->isChecked())
+        {
+            resultByte |= (1 << (i % 8));
+        }
+
+        if ((i + 1) % 8 == 0)
+        {
             calculatedByte.append(resultByte);
             resultByte = 0;
-            if (ui->state23_bit8->isChecked()) resultByte |= 0x01;
-            if (ui->state23_bit9->isChecked()) resultByte |= 0x02;
-            if (ui->state23_bit10->isChecked()) resultByte |= 0x04;
-            if (ui->state23_bit11->isChecked()) resultByte |= 0x08;
-            if (ui->state23_bit12->isChecked()) resultByte |= 0x10;
-            if (ui->state23_bit13->isChecked()) resultByte |= 0x20;
-            if (ui->state23_bit14->isChecked()) resultByte |= 0x40;
-            if (ui->state23_bit15->isChecked()) resultByte |= 0x80;
-            calculatedByte.append(resultByte);
-            break;
-        case 2:
-            if (ui->state25_bit0->isChecked()) resultByte |= 0x01;
-            if (ui->state25_bit1->isChecked()) resultByte |= 0x02;
-            if (ui->state25_bit2->isChecked()) resultByte |= 0x04;
-            if (ui->state25_bit3->isChecked()) resultByte |= 0x08;
-            if (ui->state25_bit4->isChecked()) resultByte |= 0x10;
-            if (ui->state25_bit5->isChecked()) resultByte |= 0x20;
-            if (ui->state25_bit6->isChecked()) resultByte |= 0x40;
-            if (ui->state25_bit7->isChecked()) resultByte |= 0x80;
-            calculatedByte.append(resultByte);
-            resultByte = 0;
-            if (ui->state25_bit8->isChecked()) resultByte |= 0x01;
-            if (ui->state25_bit9->isChecked()) resultByte |= 0x02;
-            if (ui->state25_bit10->isChecked()) resultByte |= 0x04;
-            if (ui->state25_bit11->isChecked()) resultByte |= 0x08;
-            if (ui->state25_bit12->isChecked()) resultByte |= 0x10;
-            if (ui->state25_bit13->isChecked()) resultByte |= 0x20;
-            if (ui->state25_bit14->isChecked()) resultByte |= 0x40;
-            if (ui->state25_bit15->isChecked()) resultByte |= 0x80;
-            calculatedByte.append(resultByte);
-            break;
-    default:
-        break;
+        }
+    }
+
+    if (checkBoxes.size() % 8 != 0)
+    {
+        calculatedByte.append(resultByte);
     }
 
     return calculatedByte;
@@ -256,9 +246,8 @@ void MainWindow::editByteForSelected(const UCHAR &stateByte, const QByteArray &b
     if (toggledDevices.isEmpty()) return;
 
     for (const QString& devicePhone : toggledDevices)
-    {
+    { 
         Device* device = iniParser->devices.value(devicePhone);
-
         if (device)
         {
             qDebug () << "In " << device->getPhone() << " changing bytes";
@@ -335,7 +324,7 @@ void MainWindow::onConnectButtonClicked()
 
 void MainWindow::onMultiConnectButtonClicked()
 {
-    if (ui->deviceTable->rowCount() <= 0)
+    if (toggledDevices.empty())
     {
         logger->logWarning(tr("Устройства не найдены!"));
         return;
@@ -345,9 +334,14 @@ void MainWindow::onMultiConnectButtonClicked()
         updateDeviceDefaults();
         ui->saveValuesButton->setChecked(true);
         logger->logInfo(tr("Запускаю соединения..."));
-        for(const auto& device : iniParser->devices)
+        for (const QString& devicePhone : toggledDevices)
         {
-            device->startWork();
+            Device* device = iniParser->devices.value(devicePhone);
+            if (device)
+            {
+                qDebug () << "Starting device " << device;
+                device->startWork();
+            }
         }
         ui->multiConnectButton->setText(tr("СТОП"));
         isRunning = true;
@@ -355,9 +349,14 @@ void MainWindow::onMultiConnectButtonClicked()
     else
     {
         logger->logInfo(tr("Закрываю соединения..."));
-        for(const auto& device : iniParser->devices)
+        for (const QString& devicePhone : toggledDevices)
         {
-            device->stopWork();
+            Device* device = iniParser->devices.value(devicePhone);
+            if (device)
+            {
+                qDebug () << "Stopping device " << device;
+                device->stopWork();
+            }
         }
         ui->multiConnectButton->setText(tr("СТАРТ"));
         logger->logInfo(tr("Завершено!"));
@@ -426,14 +425,28 @@ void MainWindow::onRelayManualButtonToggled(bool checked)
         device->setAutoRegen(!checked);
 }
 
-void MainWindow::onSendState23BitsButtonClicked()
+void MainWindow::onSendStateBitsButtonClicked()
 {
-    editByteForSelected(0x23, calculateByte());
-}
+    int tabId = ui->relayStates->currentIndex();
+    QByteArray byteValue = calculateByte();
 
-void MainWindow::onSendState21BitsButtonClicked()
-{
-    editByteForSelected(0x21, calculateByte());
+    switch (tabId)
+    {
+        case 0:
+        qDebug() << "State 21";
+            editByteForSelected(0x21, byteValue);
+            break;
+        case 1:
+            qDebug() << "State 23";
+            editByteForSelected(0x23, byteValue);
+            break;
+        case 2:
+            qDebug() << "State 25";
+            editByteForSelected(0x25, byteValue);
+            break;
+        default:
+            break;
+    }
 }
 
 void MainWindow::onSelectionChanged(const QItemSelection &selected, const QItemSelection &deselected)

@@ -65,6 +65,12 @@ private:
     QLabel* ipValue;
     QLabel* portLabel;
     QLabel* portValue;
+    QLabel* numOfConnectedLabel;
+    QLabel* totalDevicesLabel;
+    QLabel* numOfConnectedValue;
+    QLabel* totalDevicesValue;
+    int numOfConnected;
+    int totalDevices;
 
     // Разные группы QRadioButton
     QButtonGroup relayRadioButtons;
@@ -105,8 +111,7 @@ private slots:
     void onSaveValuesButtonStateChanged(int state);
     void updateDeviceStatus(QTableWidgetItem* item, const QString &status);
     void onRelayManualButtonToggled(bool checked);
-    void onSendState21BitsButtonClicked();
-    void onSendState23BitsButtonClicked();
+    void onSendStateBitsButtonClicked();
     void onSelectionChanged(const QItemSelection &selected, const QItemSelection &deselected);
     void onEnableLogForAllButtonToggled(bool checked);
     void onEnableLogForSelectedButtonToggled(bool checked);
