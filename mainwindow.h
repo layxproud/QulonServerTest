@@ -10,6 +10,7 @@
 #include <QButtonGroup>
 #include "iniparser.h"
 #include "logger.h"
+#include "calculatebytewidget.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -88,6 +89,8 @@ private:
     void initSpinBoxes();
     // Инициализация групп кнопок
     void initButtonGroups();
+    // Инициализация TabWidget
+    void initTabWidget();
     // Заполнение таблицы устройств
     void populateDeviceTable(const QMap<QString, Device*> &devices);
     // Обновление значений по умолчанию для устройств
@@ -111,7 +114,6 @@ private slots:
     void onSaveValuesButtonStateChanged(int state);
     void updateDeviceStatus(QTableWidgetItem* item, const QString &status);
     void onRelayManualButtonToggled(bool checked);
-    void onSendStateBitsButtonClicked();
     void onSelectionChanged(const QItemSelection &selected, const QItemSelection &deselected);
     void onEnableLogForAllButtonToggled(bool checked);
     void onEnableLogForSelectedButtonToggled(bool checked);
@@ -119,6 +121,7 @@ private slots:
     void onClearLogButtonClicked();
     void onTurnOnDevicesButtonClicked();
     void onTurnOffDevicesButtonClicked();
+    void onByteCalculated(const QByteArray &byte);
 };
 
 #endif // MAINWINDOW_H

@@ -23,18 +23,24 @@ public:
     void setIp(const QString &ip);
     void setPort(const quint16 &port);
     void setAutoRegen(const bool &regen);
+    void setWorkParams();
 
-    // Timers
-    void setConnectionInterval(const int &interval);
-    void setDisconnectionInterval(const int &from, const int &to);
-    void setSendStatusInterval(const int &interval);
-    void setChangeStatusInterval(const int &interval);
+    // Запуск и завершение рабочего процесса
     void startWork();
     void stopWork();
 
     void debugConnect(const QString &serverAddress, quint16 serverPort);
     void editByte(const UCHAR &stateByte, const QByteArray &byte);
     void editLogStatus(const bool &status);
+
+    struct timerIntervals
+    {
+        int _connectionInterval;
+        int _disconnectionFromInterval;
+        int _disconnectionToInterval;
+        int _sendStatusInterval;
+        int _changeStatusInterval;
+    };
 
 private:
     QString _phone;
@@ -53,15 +59,14 @@ private:
     QTimer *sendStatusTimer;
     QTimer *changeStatusTimer;
 
-    // default values
-    int _connectionInterval = 60000;
-    int _disconnectionFromInterval = 300000;
-    int _disconnectionToInterval = 600000;
-    int _sendStatusInterval = 30000;
-    int _changeStatusInterval = 30000;
-
 private:
     int phoneToId();
+
+    void setConnectionInterval(const int &interval);
+    void setDisconnectionInterval(const int &from, const int &to);
+    void setSendStatusInterval(const int &interval);
+    void setChangeStatusInterval(const int &interval);
+
     void startConnectionTimer();
     void startDisconnectionTimer();
     void startSendStatusTimer();

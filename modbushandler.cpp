@@ -12,6 +12,7 @@ void ModbusHandler::initModbusHandler(const QString &phone)
 
     addState(0x21, QByteArray::fromHex("00000000000000000000000000000000"));
     addState(0x23, QByteArray::fromHex("80800000000000000000000000000000000000000000000000000000000000"));
+    addState(0x25, QByteArray::fromHex("000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"));
 
     _myAddr = 0xD0;
     _serverAddr = 0x00;
@@ -161,16 +162,7 @@ void ModbusHandler::formStateMessage(const bool &outsideCall)
 {
     UCHAR crc[2];
 
-    // DATA (Hardcode for now)
-    // randomiseRelayStates();
-//    stateMessage.header = QByteArray::fromHex("390151756C6F6E2D43322D5363656E322C2049503A203139322E3136382E312E36342028455448292C20636F6E6E656374206661696C65640004040063");
-//    stateMessage.state02 = QByteArray::fromHex("030200");
-//    stateMessage.state24 = QByteArray::fromHex("032400");
-//    stateMessage.state21 = QByteArray::fromHex("122100000000000000000000000000000000");
-//    stateMessage.state23 = QByteArray::fromHex("212380800000000000000000000000000000000000000000000000000000000000");
-//    stateMessage.state25 = QByteArray::fromHex("2125000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
-//    stateMessage.state26 = QByteArray::fromHex("032600");
-
+    // DATA
     QByteArray data;
     for (const FL_MODBUS_STATE_CMD_MESSAGE& message : stateMessage)
     {

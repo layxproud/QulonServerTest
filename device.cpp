@@ -72,25 +72,9 @@ void Device::setAutoRegen(const bool &regen)
     _autoRegen = regen;
 }
 
-void Device::setConnectionInterval(const int &interval)
+void Device::setDefaults()
 {
-    _connectionInterval = interval;
-}
 
-void Device::setDisconnectionInterval(const int &from, const int &to)
-{
-    _disconnectionFromInterval = from;
-    _disconnectionToInterval = to;
-}
-
-void Device::setSendStatusInterval(const int &interval)
-{
-    _sendStatusInterval = interval;
-}
-
-void Device::setChangeStatusInterval(const int &interval)
-{
-    _changeStatusInterval = interval;
 }
 
 void Device::startWork()
@@ -132,6 +116,27 @@ void Device::editByte(const UCHAR &stateByte, const QByteArray &byte)
 void Device::editLogStatus(const bool &status)
 {
     _client->editLogStatus(status);
+}
+
+void Device::setConnectionInterval(const int &interval)
+{
+    _connectionInterval = interval;
+}
+
+void Device::setDisconnectionInterval(const int &from, const int &to)
+{
+    _disconnectionFromInterval = from;
+    _disconnectionToInterval = to;
+}
+
+void Device::setSendStatusInterval(const int &interval)
+{
+    _sendStatusInterval = interval;
+}
+
+void Device::setChangeStatusInterval(const int &interval)
+{
+    _changeStatusInterval = interval;
 }
 
 void Device::startConnectionTimer()

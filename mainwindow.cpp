@@ -25,10 +25,9 @@ MainWindow::MainWindow(QWidget *parent)
     spinBoxes[8] = {ui->changeStatusIntMinBox, DEFAULT_CHANGE_STATUS_MIN_BOX};
     spinBoxes[9] = {ui->changeStatusIntSecBox, DEFAULT_CHANGE_STATUS_SEC_BOX};
     initSpinBoxes();
-    enableSpinBoxes(true);
     initStatusBar();
     initButtonGroups();
-    ui->relayStates->setCurrentIndex(0);
+    initTabWidget();
 
     // GUI connects
     connect(ui->multiConnectButton, &QPushButton::clicked, this, &MainWindow::onMultiConnectButtonClicked);
@@ -36,9 +35,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->saveValuesButton, &QCheckBox::stateChanged, this, &MainWindow::onSaveValuesButtonStateChanged);
     connect(ui->openIniFileAction, &QAction::triggered, this, &MainWindow::onOpenIniFileActionTriggered);
     connect(ui->relayManualButton, &QRadioButton::toggled, this, &MainWindow::onRelayManualButtonToggled);
-    connect(ui->sendState21BitsButton, &QPushButton::clicked, this, &MainWindow::onSendStateBitsButtonClicked);
-    connect(ui->sendState23BitsButton, &QPushButton::clicked, this, &MainWindow::onSendStateBitsButtonClicked);
-    connect(ui->sendState25BitsButton, &QPushButton::clicked, this, &MainWindow::onSendStateBitsButtonClicked);
     connect(ui->deviceTable->selectionModel(), &QItemSelectionModel::selectionChanged, this, &MainWindow::onSelectionChanged);
     connect(ui->enableLogForAllButton, &QRadioButton::toggled, this, &MainWindow::onEnableLogForAllButtonToggled);
     connect(ui->enableLogForSelectedButton, &QRadioButton::toggled, this, &MainWindow::onEnableLogForSelectedButtonToggled);
@@ -87,6 +83,7 @@ void MainWindow::initSpinBoxes()
     for (const SpinBoxInfo& info : spinBoxes)
     {
         info.spinBox->setValue(info.defaultValue);
+        info.spinBox->setEnabled(true);
     }
 }
 
@@ -103,6 +100,23 @@ void MainWindow::initButtonGroups()
     {
         logRadioButtons.addButton(button);
     }
+}
+
+void MainWindow::initTabWidget()
+{
+    CalculateByteWidget* state21 = new CalculateByteWidget(8, this);
+    connect(state21, &CalculateByteWidget::byteCalculated, this, &MainWindow::onByteCalculated);
+    ui->relayStates->addTab(state21, tr("Relay"));
+
+    CalculateByteWidget* state23 = new CalculateByteWidget(16, this);
+    connect(state23, &CalculateByteWidget::byteCalculated, this, &MainWindow::onByteCalculated);
+    ui->relayStates->addTab(state23, tr("Inputs"));
+
+    CalculateByteWidget* state25 = new CalculateByteWidget(16, this);
+    connect(state25, &CalculateByteWidget::byteCalculated, this, &MainWindow::onByteCalculated);
+    ui->relayStates->addTab(state25, tr("Warnings"));
+
+    ui->relayStates->setCurrentIndex(0);
 }
 
 void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
@@ -192,7 +206,6 @@ void MainWindow::updateDeviceDefaults()
         device->setChangeStatusInterval(changeStatusInterval);
         device->setAutoRegen(ui->relayAutoButton->isChecked());
     }
-    // editByteForSelected(getCurrentTab(), calculateByte());
 }
 
 void MainWindow::enableSpinBoxes(const bool &arg)
@@ -201,42 +214,6 @@ void MainWindow::enableSpinBoxes(const bool &arg)
     {
         info.spinBox->setEnabled(arg);
     }
-}
-
-QByteArray MainWindow::calculateByte()
-{
-    QByteArray calculatedByte{};
-    UCHAR resultByte{};
-
-    int tabId = ui->relayStates->currentIndex();
-    QWidget* currentTab = ui->relayStates->widget(tabId);
-
-    QList<QCheckBox*> checkBoxes = currentTab->findChildren<QCheckBox*>();
-    std::sort(checkBoxes.begin(), checkBoxes.end(), [](const QCheckBox* a, const QCheckBox* b) {
-        return a->objectName() < b->objectName();
-    });
-
-    // Обрабатываем каждый QCheckBox
-    for (int i = 0; i < checkBoxes.size(); ++i)
-    {
-        if (checkBoxes[i]->isChecked())
-        {
-            resultByte |= (1 << (i % 8));
-        }
-
-        if ((i + 1) % 8 == 0)
-        {
-            calculatedByte.append(resultByte);
-            resultByte = 0;
-        }
-    }
-
-    if (checkBoxes.size() % 8 != 0)
-    {
-        calculatedByte.append(resultByte);
-    }
-
-    return calculatedByte;
 }
 
 void MainWindow::editByteForSelected(const UCHAR &stateByte, const QByteArray &byte)
@@ -438,44 +415,13 @@ void MainWindow::updateDeviceStatus(QTableWidgetItem *item, const QString &statu
 
 void MainWindow::onRelayManualButtonToggled(bool checked)
 {
-    QList<QCheckBox*> checkBoxes = ui->relayStates->findChildren<QCheckBox*>();
-    QList<QPushButton*> pushButtons = ui->relayStates->findChildren<QPushButton*>();
-    for (QCheckBox* checkBox : checkBoxes)
-    {
-        checkBox->setEnabled(checked);
-    }
-    for (QPushButton* pushButton : pushButtons)
-    {
-        pushButton->setEnabled(checked);
-    }
+    QList<CalculateByteWidget*> widgetList = ui->relayStates->findChildren<CalculateByteWidget*>();
+    for (auto w : widgetList)
+        w->enableControl(checked);
 
     // disable auto regen in devices
     for(auto& device : iniParser->devices)
         device->setAutoRegen(!checked);
-}
-
-void MainWindow::onSendStateBitsButtonClicked()
-{
-    int tabId = ui->relayStates->currentIndex();
-    QByteArray byteValue = calculateByte();
-
-    switch (tabId)
-    {
-        case 0:
-        qDebug() << "State 21";
-            editByteForSelected(0x21, byteValue);
-            break;
-        case 1:
-            qDebug() << "State 23";
-            editByteForSelected(0x23, byteValue);
-            break;
-        case 2:
-            qDebug() << "State 25";
-            editByteForSelected(0x25, byteValue);
-            break;
-        default:
-            break;
-    }
 }
 
 void MainWindow::onSelectionChanged(const QItemSelection &selected, const QItemSelection &deselected)
@@ -572,6 +518,25 @@ void MainWindow::onTurnOffDevicesButtonClicked()
 
     toggledDevices.subtract(selectedDevices);
     updateCheckBoxesFromToggledDevices();
+}
+
+void MainWindow::onByteCalculated(const QByteArray &byte)
+{
+    int tabId = ui->relayStates->currentIndex();
+    switch (tabId)
+    {
+    case 0:
+        editByteForSelected(0x21, byte);
+        break;
+    case 1:
+        editByteForSelected(0x23, byte);
+        break;
+    case 2:
+        editByteForSelected(0x25, byte);
+        break;
+    default:
+        break;
+    }
 }
 
 

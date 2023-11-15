@@ -10,6 +10,7 @@ CONFIG += c++17
 
 SOURCES += \
     Prot.cpp \
+    calculatebytewidget.cpp \
     device.cpp \
     iniparser.cpp \
     logger.cpp \
@@ -20,6 +21,7 @@ SOURCES += \
 
 HEADERS += \
     Prot.h \
+    calculatebytewidget.h \
     checkboxheader.h \
     device.h \
     iniparser.h \
