@@ -6,6 +6,17 @@
 #include "logger.h"
 #include "tcpclient.h"
 
+struct DeviceDefaults
+{
+    int connectionInterval = 60000;
+    int disconnectionFromInterval = 300000;
+    int disconnectionToInterval = 600000;
+    int sendStatusInterval = 30000;
+    int changeStatusInterval = 30000;
+    bool autoRegen = true;
+    bool logStatus = true;
+};
+
 class Device : public QObject
 {
     Q_OBJECT
@@ -23,24 +34,14 @@ public:
     void setIp(const QString &ip);
     void setPort(const quint16 &port);
     void setAutoRegen(const bool &regen);
-    void setWorkParams();
+    void setDefaults(const DeviceDefaults& defaults);
 
-    // Запуск и завершение рабочего процесса
     void startWork();
     void stopWork();
 
     void debugConnect(const QString &serverAddress, quint16 serverPort);
     void editByte(const UCHAR &stateByte, const QByteArray &byte);
     void editLogStatus(const bool &status);
-
-    struct timerIntervals
-    {
-        int _connectionInterval;
-        int _disconnectionFromInterval;
-        int _disconnectionToInterval;
-        int _sendStatusInterval;
-        int _changeStatusInterval;
-    };
 
 private:
     QString _phone;
@@ -50,18 +51,19 @@ private:
     int _phoneId;
     bool _connected;
     bool _autoRegen;
+    DeviceDefaults _defaults;
 
     Logger* _logger;
     TcpClient* _client;
 
+    // Таймеры
     QTimer *connectionTimer;
     QTimer *disconnectionTimer;
     QTimer *sendStatusTimer;
     QTimer *changeStatusTimer;
 
 private:
-    int phoneToId();
-
+    // Таймеры
     void setConnectionInterval(const int &interval);
     void setDisconnectionInterval(const int &from, const int &to);
     void setSendStatusInterval(const int &interval);
@@ -74,7 +76,6 @@ private:
 
 private slots:
     void onConnectionChanged(const bool &status);
-
     void onConnectionTimerTimeout();
     void onDisconnectionTimerTimeout();
     void onSendStatusTimerTimeout();

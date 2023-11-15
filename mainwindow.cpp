@@ -185,26 +185,26 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
 
 void MainWindow::updateDeviceDefaults()
 {
-    if (toggledDevices.empty())
-    {
-        logger->logWarning(tr("Ни одно устройство не выделено. Изменения не внесены."));
-        return;
-    }
+//    if (toggledDevices.empty())
+//    {
+//        logger->logWarning(tr("Ни одно устройство не выделено. Изменения не внесены."));
+//        return;
+//    }
+    DeviceDefaults defaults;
+    defaults.connectionInterval = ui->conIntMinBox->value() * SEC * MILSEC + ui->conIntSecBox->value() * MILSEC;
+    defaults.disconnectionFromInterval = ui->discIntFromMinBox->value() * SEC * MILSEC + ui->discIntFromSecBox->value() * MILSEC;
+    defaults.disconnectionToInterval = ui->discIntToMinBox->value() * SEC * MILSEC + ui->discIntToSecBox->value() * MILSEC;
+    defaults.sendStatusInterval = ui->sendStatusIntMinBox->value() * SEC * MILSEC + ui->sendStatusIntSecBox->value() * MILSEC;
+    defaults.changeStatusInterval = ui->changeStatusIntMinBox->value() * SEC * MILSEC + ui->changeStatusIntSecBox->value() * MILSEC;
+    defaults.autoRegen = ui->relayAutoButton->isChecked();
+    if (ui->enableLogForAllButton->isChecked())
+        defaults.logStatus = true;
+    else
+        defaults.logStatus = false;
 
-    int connectionInterval = ui->conIntMinBox->value() * SEC * MILSEC + ui->conIntSecBox->value() * MILSEC;
-    int disconnectionFromInterval = ui->discIntFromMinBox->value() * SEC * MILSEC + ui->discIntFromSecBox->value() * MILSEC;
-    int disconnectionToInterval = ui->discIntToMinBox->value() * SEC * MILSEC + ui->discIntToSecBox->value() * MILSEC;
-    int sendStatusInterval = ui->sendStatusIntMinBox->value() * SEC * MILSEC + ui->sendStatusIntSecBox->value() * MILSEC;
-    int changeStatusInterval = ui->changeStatusIntMinBox->value() * SEC * MILSEC + ui->changeStatusIntSecBox->value() * MILSEC;
-
-    for (const QString& devicePhone : toggledDevices)
+    for (const auto& device : iniParser->devices)
     {
-        Device* device = iniParser->devices.value(devicePhone);
-        device->setConnectionInterval(connectionInterval);
-        device->setDisconnectionInterval(disconnectionFromInterval, disconnectionToInterval);
-        device->setSendStatusInterval(sendStatusInterval);
-        device->setChangeStatusInterval(changeStatusInterval);
-        device->setAutoRegen(ui->relayAutoButton->isChecked());
+        device->setDefaults(defaults);
     }
 }
 
@@ -218,7 +218,11 @@ void MainWindow::enableSpinBoxes(const bool &arg)
 
 void MainWindow::editByteForSelected(const UCHAR &stateByte, const QByteArray &byte)
 {
-    if (toggledDevices.isEmpty()) return;
+    if (toggledDevices.isEmpty())
+    {
+        logger->logWarning(tr("Устройства не выбраны"));
+        return;
+    }
 
     for (const QString& devicePhone : toggledDevices)
     { 
@@ -379,7 +383,6 @@ void MainWindow::onOpenIniFileActionTriggered()
 
     if (filePath.isEmpty())
     {
-        logger->logError(tr("Ошибка открытия файла."));
         return;
     }
 
@@ -431,7 +434,6 @@ void MainWindow::onSelectionChanged(const QItemSelection &selected, const QItemS
         if (index.column() == 1)
         {
             selectedDevices.insert(ui->deviceTable->item(index.row(), 1)->text());
-            qDebug() << "В список добавлено устройство " << ui->deviceTable->item(index.row(), 1)->text();
             if (ui->enableLogForSelectedButton->isChecked())
             {
                 Device* device = iniParser->devices.value(ui->deviceTable->item(index.row(), 1)->text());
@@ -445,7 +447,6 @@ void MainWindow::onSelectionChanged(const QItemSelection &selected, const QItemS
         if (index.column() == 1)
         {
             selectedDevices.remove(ui->deviceTable->item(index.row(), 1)->text());
-            qDebug() << "Из списка удалено устройство " << ui->deviceTable->item(index.row(), 1)->text();
             if (ui->enableLogForSelectedButton->isChecked())
             {
                 Device* device = iniParser->devices.value(ui->deviceTable->item(index.row(), 1)->text());

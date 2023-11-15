@@ -19,7 +19,6 @@ Device::Device(const QString &phone, const QString &name, Logger *logger, QObjec
     _name = name;
     _phone = phone;
     _logger = logger;
-    _phoneId = phoneToId();
     _client = new TcpClient(_logger, _phone, this);
     connect(_client, &TcpClient::connectionChanged, this, &Device::onConnectionChanged);
     _connected = _client->isConnected();
@@ -72,9 +71,14 @@ void Device::setAutoRegen(const bool &regen)
     _autoRegen = regen;
 }
 
-void Device::setDefaults()
+void Device::setDefaults(const DeviceDefaults &defaults)
 {
-
+    setConnectionInterval(defaults.connectionInterval);
+    setDisconnectionInterval(defaults.disconnectionFromInterval, defaults.disconnectionToInterval);
+    setSendStatusInterval(defaults.sendStatusInterval);
+    setChangeStatusInterval(defaults.changeStatusInterval);
+    setAutoRegen(defaults.autoRegen);
+    editLogStatus(defaults.logStatus);
 }
 
 void Device::startWork()
@@ -120,59 +124,45 @@ void Device::editLogStatus(const bool &status)
 
 void Device::setConnectionInterval(const int &interval)
 {
-    _connectionInterval = interval;
+    _defaults.connectionInterval = interval;
 }
 
 void Device::setDisconnectionInterval(const int &from, const int &to)
 {
-    _disconnectionFromInterval = from;
-    _disconnectionToInterval = to;
+    _defaults.disconnectionFromInterval = from;
+    _defaults.disconnectionToInterval = to;
 }
 
 void Device::setSendStatusInterval(const int &interval)
 {
-    _sendStatusInterval = interval;
+    _defaults.sendStatusInterval = interval;
 }
 
 void Device::setChangeStatusInterval(const int &interval)
 {
-    _changeStatusInterval = interval;
+    _defaults.changeStatusInterval = interval;
 }
 
 void Device::startConnectionTimer()
 {
-    QRandomGenerator randomGenerator(_phoneId);
-    int randomInterval = randomGenerator.generate() % _connectionInterval;
+    int randomInterval = QRandomGenerator::global()->bounded(_defaults.connectionInterval);
     connectionTimer->start(randomInterval);
 }
 
 void Device::startDisconnectionTimer()
 {
-    QRandomGenerator randomGenerator(_phoneId);
-    int randomInterval = randomGenerator.bounded(_disconnectionFromInterval, _disconnectionToInterval);
+    int randomInterval = QRandomGenerator::global()->bounded(_defaults.disconnectionFromInterval, _defaults.disconnectionToInterval);
     disconnectionTimer->start(randomInterval);
 }
 
 void Device::startSendStatusTimer()
 {
-    sendStatusTimer->start(_sendStatusInterval);
+    sendStatusTimer->start(_defaults.sendStatusInterval);
 }
 
 void Device::startChangeStatusTimer()
 {
-    changeStatusTimer->start(_changeStatusInterval);
-}
-
-int Device::phoneToId()
-{
-    int deviceId = 0;
-
-    for (int i = 0; i < _phone.length(); ++i)
-    {
-        int asciiValue = _phone.at(i).toLatin1();
-        deviceId = (deviceId << 8) | asciiValue;
-    }
-    return deviceId;
+    changeStatusTimer->start(_defaults.changeStatusInterval);
 }
 
 void Device::onConnectionChanged(const bool &status)
