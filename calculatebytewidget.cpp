@@ -13,7 +13,8 @@ CalculateByteWidget::CalculateByteWidget(int numBits, QWidget *parent)
 
     QGridLayout* layout = new QGridLayout(this);
 
-    for (int i = 0; i < numBits; ++i) {
+    for (int i = 0; i < numBits; ++i)
+    {
         QLabel* label = new QLabel(QString::number(i), this);
         QCheckBox* checkBox = new QCheckBox(this);
         checkBoxes.push_back(checkBox);
@@ -22,17 +23,17 @@ CalculateByteWidget::CalculateByteWidget(int numBits, QWidget *parent)
         layout->addWidget(checkBox, 1, numBits - i - 1);
 
         connect(checkBox, &QCheckBox::stateChanged, this, [this, i](int state){
-            if (state == Qt::Checked) {
+            if (state == Qt::Checked)
                 calculatedByte[i / 8] |= (1 << (i % 8));
-            } else {
+            else
                 calculatedByte[i / 8] &= ~(1 << (i % 8));
-            }
         });
     }
 
     // Create QPushButton
-    calculateByteButton = new QPushButton("Calculate", this);
-    layout->addWidget(calculateByteButton, 1, numBits);
+    calculateByteButton = new QPushButton(tr("ОК"), this);
+    calculateByteButton->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+    layout->addWidget(calculateByteButton, 0, numBits, 2, 1);
 
     connect(calculateByteButton, &QPushButton::clicked, [=]() {
         qDebug() << "calculatedByte:" << calculatedByte;
