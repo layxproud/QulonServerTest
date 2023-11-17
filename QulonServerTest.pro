@@ -1,4 +1,4 @@
-QT       += core gui network
+QT       += core gui network core5compat
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -13,6 +13,7 @@ SOURCES += \
     calculatebytewidget.cpp \
     device.cpp \
     iniparser.cpp \
+    lamplist.cpp \
     logger.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -25,6 +26,7 @@ HEADERS += \
     checkboxheader.h \
     device.h \
     iniparser.h \
+    lamplist.h \
     logger.h \
     mainwindow.h \
     modbushandler.h \

@@ -1,5 +1,6 @@
 #include "iniparser.h"
 #include <QDebug>
+#include <QTextCodec>
 
 IniParser::IniParser(Logger *logger, QObject *parent)
     : QObject{parent}
@@ -49,8 +50,14 @@ void IniParser::parseIniFile(const QString& filePath)
         return;
     }
 
-    QTextStream in(&file);
-    in.setEncoding(QStringConverter::System);
+    // QTextStream in(&file);
+    // in.setEncoding(QStringConverter::System); перестало работать как только я в параметрах
+    // системы выставил "Использовать Юникод (UTF-8) для поддержки языка во всем мире"
+    QByteArray fileContent = file.readAll();
+    QTextCodec* codec1251 = QTextCodec::codecForName("Windows-1251");
+    QString decodedContent = codec1251->toUnicode(fileContent);
+
+    QTextStream in(&decodedContent, QIODevice::ReadOnly);
 
     QString currentSection;
 
