@@ -42,6 +42,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->clearLogButton, &QPushButton::clicked, this, &MainWindow::onClearLogButtonClicked);
     connect(ui->turnOnDevicesButton, &QPushButton::clicked, this, &MainWindow::onTurnOnDevicesButtonClicked);
     connect(ui->turnOffDevicesButton, &QPushButton::clicked, this, &MainWindow::onTurnOffDevicesButtonClicked);
+    connect(ui->listOfLampsAction, &QAction::triggered, this, &MainWindow::onListOfLampsActionTriggered);
 }
 
 MainWindow::~MainWindow()
@@ -538,6 +539,13 @@ void MainWindow::onByteCalculated(const QByteArray &byte)
     default:
         break;
     }
+}
+
+void MainWindow::onListOfLampsActionTriggered()
+{
+    for (Device* device : iniParser->devices)
+        if (device)
+            device->setLampsList();
 }
 
 

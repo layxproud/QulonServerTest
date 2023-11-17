@@ -691,6 +691,7 @@
      <string>Файл</string>
     </property>
     <addaction name="openIniFileAction"/>
+    <addaction name="listOfLampsAction"/>
    </widget>
    <addaction name="menu"/>
   </widget>
@@ -701,6 +702,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+O</string>
+   </property>
+  </action>
+  <action name="listOfLampsAction">
+   <property name="text">
+    <string>Светильники</string>
    </property>
   </action>
  </widget>

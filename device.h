@@ -5,6 +5,7 @@
 #include <QTimer>
 #include "logger.h"
 #include "tcpclient.h"
+#include "lamplist.h"
 
 struct DeviceDefaults
 {
@@ -35,6 +36,7 @@ public:
     void setPort(const quint16 &port);
     void setAutoRegen(const bool &regen);
     void setDefaults(const DeviceDefaults& defaults);
+    void setLampsList();
 
     void startWork();
     void stopWork();
@@ -53,6 +55,7 @@ private:
     bool _autoRegen;
     DeviceDefaults _defaults;
 
+    LampList _lampList;
     Logger* _logger;
     TcpClient* _client;
 

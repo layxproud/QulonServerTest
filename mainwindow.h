@@ -122,6 +122,7 @@ private slots:
     void onTurnOnDevicesButtonClicked();
     void onTurnOffDevicesButtonClicked();
     void onByteCalculated(const QByteArray &byte);
+    void onListOfLampsActionTriggered();
 };
 
 #endif // MAINWINDOW_H

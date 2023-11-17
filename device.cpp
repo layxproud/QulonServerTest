@@ -81,6 +81,11 @@ void Device::setDefaults(const DeviceDefaults &defaults)
     editLogStatus(defaults.logStatus);
 }
 
+void Device::setLampsList()
+{
+    _lampList.init();
+}
+
 void Device::startWork()
 {
     startConnectionTimer();
