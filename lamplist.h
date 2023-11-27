@@ -20,7 +20,6 @@ struct NodeParameter
 struct Node
 {
     UINT id;                // Уникальный идентификатор узла
-    std::string text;       // Текстовая строка
     UINT status;            // Битовая маска статуса узла
     USHORT mode;            // Текущий режим
     UCHAR levelHost;        // Уровень мощности в хосте (в процентах)
@@ -40,7 +39,11 @@ public:
 private:
     QList<Node> nodes;
     QByteArray deviceArray;
-    QList<NodeParameter> parameterTypes;
+    QList<NodeParameter> parameterTypes = {
+        {0xFF00, 4}, {0xFF02, 4}, {0xFF03, 2},
+        {0xFF10, 1}, {0xFF11, 1}, {0xFF12, 2},
+        {0xFF13, 2}, {0xFF14, 4}, {0xFF15, 4}
+    };
 
 private:
     bool writeNodesToFile(const QList<Node> &nodes);

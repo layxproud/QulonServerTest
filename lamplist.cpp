@@ -6,7 +6,6 @@
 
 LampList::LampList()
 {
-    qDebug() << "Constructor of LampList";
 }
 
 void LampList::init(int num, int level)
@@ -17,7 +16,6 @@ void LampList::init(int num, int level)
     {
         Node newNode;
         newNode.id = SWAP_HL_UINT(i);
-        newNode.text = "Sample Node";
         newNode.status = SWAP_HL_UINT(0);
         newNode.mode = SWAP_HL_UINT(0);
         newNode.levelHost = level;
@@ -49,7 +47,7 @@ bool LampList::writeNodesToFile(const QList<Node> &nodes)
     UINT swappedParamSize = SWAP_HL_UINT(parameterTypes.size());
     deviceArray.append(reinterpret_cast<const char*>(&swappedParamSize), sizeof(UINT));
     // Длина блока параметров для одного узла
-    UINT swappedNodeSize = SWAP_HL_UINT(sizeof(Node));
+    UINT swappedNodeSize = SWAP_HL_UINT(24);
     deviceArray.append(reinterpret_cast<const char*>(&swappedNodeSize), sizeof(UINT));
     // Смещение таблицы параметров узлов
     UINT swappedNodesOffset = SWAP_HL_UINT(0x00000020 + parameterTypes.size() * 8);
@@ -78,9 +76,6 @@ bool LampList::writeNodesToFile(const QList<Node> &nodes)
         QByteArray nodeData;
         // Идентификатор
         nodeData.append(reinterpret_cast<const char*>(&node.id), sizeof(UINT));
-        // Текстовая строка
-        const char* textData = node.text.c_str();
-        deviceArray.append(textData, static_cast<int>(node.text.size()));
         // Битовая маска
         nodeData.append(reinterpret_cast<const char*>(&node.status), sizeof(UINT));
         // Текущий режим
@@ -103,7 +98,7 @@ bool LampList::writeNodesToFile(const QList<Node> &nodes)
     }
 
     // Сохранение QByteArray в файл
-    QFile file("outputNewNEW.dat");
+    QFile file("output2.dat");
     if (file.open(QIODevice::WriteOnly))
     {
         file.write(deviceArray);
@@ -156,9 +151,6 @@ bool LampList::writeNodesToByteArray(const QList<Node> &nodes)
         // Идентификатор
         UINT swappedNodeID = SWAP_HL_UINT(node.id);
         nodeData.append(reinterpret_cast<const char*>(&swappedNodeID), sizeof(UINT));
-        // Текстовая строка
-        const char* textData = node.text.c_str();
-        deviceArray.append(textData, static_cast<int>(node.text.size()));
         // Битовая маска
         UINT swappedNodeStatus = SWAP_HL_UINT(node.status);
         nodeData.append(reinterpret_cast<const char*>(&swappedNodeStatus), sizeof(UINT));
