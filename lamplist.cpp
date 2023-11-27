@@ -77,6 +77,83 @@ bool LampList::writeNodesToFile(const QList<Node> &nodes)
     {
         QByteArray nodeData;
         // Идентификатор
+        nodeData.append(reinterpret_cast<const char*>(&node.id), sizeof(UINT));
+        // Текстовая строка
+        const char* textData = node.text.c_str();
+        deviceArray.append(textData, static_cast<int>(node.text.size()));
+        // Битовая маска
+        nodeData.append(reinterpret_cast<const char*>(&node.status), sizeof(UINT));
+        // Текущий режим
+        nodeData.append(reinterpret_cast<const char*>(&node.mode), sizeof(USHORT));
+        // Уровень мощности в хосте
+        nodeData.append(reinterpret_cast<const char*>(&node.levelHost), sizeof(UCHAR));
+        // Уровень мощности
+        nodeData.append(reinterpret_cast<const char*>(&node.levelNode), sizeof(UCHAR));
+        // Напряжение питания
+        nodeData.append(reinterpret_cast<const char*>(&node.voltage), sizeof(USHORT));
+        // Ток потребления
+        nodeData.append(reinterpret_cast<const char*>(&node.current), sizeof(USHORT));
+        // Потребленная энергия
+        nodeData.append(reinterpret_cast<const char*>(&node.energy), sizeof(UINT));
+        // Время работы узла
+        nodeData.append(reinterpret_cast<const char*>(&node.worktime), sizeof(UINT));
+
+        // Добавление данных узла в общий QByteArray
+        deviceArray.append(nodeData);
+    }
+
+    // Сохранение QByteArray в файл
+    QFile file("outputNewNEW.dat");
+    if (file.open(QIODevice::WriteOnly))
+    {
+        file.write(deviceArray);
+        file.close();
+        return true;
+    }
+    else return false;
+}
+
+bool LampList::writeNodesToByteArray(const QList<Node> &nodes)
+{
+    deviceArray.clear();
+
+    // Запись заголовка файла состояния
+    deviceArray.append("STATE2.DAT\0\0\0\0", 16);
+    // Количество узлов
+    UINT swappedNodesSize = SWAP_HL_UINT(nodes.size());
+    deviceArray.append(reinterpret_cast<const char*>(&swappedNodesSize), sizeof(UINT));
+    // Количество параметров
+    UINT swappedParamSize = SWAP_HL_UINT(parameterTypes.size());
+    deviceArray.append(reinterpret_cast<const char*>(&swappedParamSize), sizeof(UINT));
+    // Длина блока параметров для одного узла
+    UINT swappedNodeSize = SWAP_HL_UINT(sizeof(Node));
+    deviceArray.append(reinterpret_cast<const char*>(&swappedNodeSize), sizeof(UINT));
+    // Смещение таблицы параметров узлов
+    UINT swappedNodesOffset = SWAP_HL_UINT(0x00000020 + parameterTypes.size() * 8);
+    deviceArray.append(reinterpret_cast<const char*>(&swappedNodesOffset), sizeof(UINT));
+
+    // Запись таблицы параметров узлов
+    for (const NodeParameter &parameter : parameterTypes)
+    {
+        // Смещение параметра i в блоке параметров узла
+        USHORT swappedParamOffset = SWAP_HL_SHORT(0);
+        deviceArray.append(reinterpret_cast<const char*>(&swappedParamOffset), sizeof(USHORT));
+        // Размер параметра i в байтах
+        USHORT swappedParamSize = SWAP_HL_SHORT(parameter.size);
+        deviceArray.append(reinterpret_cast<const char*>(&swappedParamSize), sizeof(USHORT));
+        // Тип параметра i
+        USHORT swappedParamType = SWAP_HL_SHORT(parameter.id);
+        deviceArray.append(reinterpret_cast<const char*>(&swappedParamType), sizeof(USHORT));
+        // Зарезервировано
+        USHORT swappedParamReserved = SWAP_HL_SHORT(0);
+        deviceArray.append(reinterpret_cast<const char*>(&swappedParamReserved), sizeof(USHORT));
+    }
+
+    // Запись блока параметров для каждого узла
+    for (const Node &node : nodes)
+    {
+        QByteArray nodeData;
+        // Идентификатор
         UINT swappedNodeID = SWAP_HL_UINT(node.id);
         nodeData.append(reinterpret_cast<const char*>(&swappedNodeID), sizeof(UINT));
         // Текстовая строка
@@ -107,64 +184,6 @@ bool LampList::writeNodesToFile(const QList<Node> &nodes)
 
         // Добавление данных узла в общий QByteArray
         deviceArray.append(nodeData);
-    }
-
-    // Сохранение QByteArray в файл
-    QFile file("outputNew.dat");
-    if (file.open(QIODevice::WriteOnly))
-    {
-        file.write(deviceArray);
-        file.close();
-        return true;
-    }
-    else return false;
-}
-
-bool LampList::writeNodesToByteArray(const QList<Node> &nodes)
-{
-    deviceArray.clear();
-
-    QDataStream out(&deviceArray, QIODevice::WriteOnly);
-    out.setByteOrder(QDataStream::LittleEndian);
-
-    // Запись заголовка файла состояния
-    out.writeRawData("STATE2.DAT\0\0\0\0", 16);
-    out << static_cast<quint32>(nodes.size()); // Количество узлов
-    out << static_cast<quint32>(10); // Количество параметров
-    out << static_cast<quint32>(sizeof(Node)); // Длина блока параметров для одного узла
-    out << static_cast<quint32>(0x00000020 + 10 * 8); // Смещение таблицы параметров узлов
-
-    // Запись таблицы параметров узлов
-    QList<NodeParameter> parameterTypes = {
-        {0xFF00, 4}, {0xFF01, 0}, {0xFF02, 1}, {0xFF03, 2},
-        {0xFF10, 1}, {0xFF11, 1}, {0xFF12, 2}, {0xFF13, 2},
-        {0xFF14, 4}, {0xFF15, 4}
-    };
-
-    for (const NodeParameter &parameter : parameterTypes)
-    {
-        out << quint16(0); // Смещение параметра
-        out << parameter.size; // Размер параметра
-        out << parameter.id; // Тип параметра
-        out << quint16(0); // Зарезервировано
-    }
-
-    // Запись блока параметров для каждого узла
-    for (const Node &node : nodes)
-    {
-        // Сериализация данных узла в QByteArray
-        QByteArray nodeData;
-        QDataStream nodeStream(&nodeData, QIODevice::WriteOnly);
-        nodeStream.setByteOrder(QDataStream::LittleEndian);
-        nodeStream << node.id;
-        QByteArray textData = QByteArray::fromStdString(node.text);
-        nodeStream << textData;
-        nodeStream << node.status << node.mode
-                   << node.levelHost << node.levelNode << node.voltage
-                   << node.current << node.energy << node.worktime;
-
-        // Запись данных узла в общий QByteArray
-        out.writeRawData(nodeData.constData(), nodeData.size());
     }
 
     qDebug() << deviceArray;
