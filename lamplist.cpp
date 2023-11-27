@@ -1,42 +1,130 @@
 #include "lamplist.h"
 #include <QDebug>
 
+#define SWAP_HL_UINT(i) ((i&0xFF)<<24)|((i&0xFF00)<<8)|((i&0xFF0000)>>8)|((i&0xFF000000)>>24)
+#define SWAP_HL_SHORT(i) ((i&0xFF)<<8)|((i&0xFF00)>>8)
+
 LampList::LampList()
 {
-
+    qDebug() << "Constructor of LampList";
 }
 
-void LampList::init()
+void LampList::init(int num, int level)
 {
-    QList<Node> nodes;
-    Node testNode;
-    testNode.id = 0x1234;
-    testNode.text = "Sample Node";
-    testNode.status = 0b01010101;
-    testNode.mode = 0xABCD;
-    testNode.levelHost = 50;
-    testNode.levelNode = 75;
-    testNode.voltage = 220;
-    testNode.current = 200;
-    testNode.energy = 100;
-    testNode.worktime = 24 * 3600;
-    nodes.append(testNode);
+    nodes.clear();
 
-    if (writeNodesToFile("nodes.dat", nodes))
+    for (int i = 1; i <= num; ++i)
+    {
+        Node newNode;
+        newNode.id = SWAP_HL_UINT(i);
+        newNode.text = "Sample Node";
+        newNode.status = SWAP_HL_UINT(0);
+        newNode.mode = SWAP_HL_UINT(0);
+        newNode.levelHost = level;
+        qDebug() << "У устройства с id: " << i << " выставлен уровень хоста " << level;
+        newNode.levelNode = 0;
+        newNode.voltage = SWAP_HL_SHORT(220);
+        newNode.current = SWAP_HL_SHORT(200);
+        newNode.energy = SWAP_HL_UINT(100);
+        newNode.worktime = SWAP_HL_UINT(24 * 3600);
+        nodes.append(newNode);
+    }
+
+    if (writeNodesToFile(nodes))
         qDebug() << "Nodes written to file successfully.";
     else
         qDebug() << "Error writing nodes to file.";
 }
 
-bool LampList::writeNodesToFile(const QString &fileName, const QList<Node> &nodes)
+bool LampList::writeNodesToFile(const QList<Node> &nodes)
 {
-    QFile file(fileName);
-    if (!file.open(QIODevice::WriteOnly))
+    deviceArray.clear();
+
+    // Запись заголовка файла состояния
+    deviceArray.append("STATE2.DAT\0\0\0\0", 16);
+    // Количество узлов
+    UINT swappedNodesSize = SWAP_HL_UINT(nodes.size());
+    deviceArray.append(reinterpret_cast<const char*>(&swappedNodesSize), sizeof(UINT));
+    // Количество параметров
+    UINT swappedParamSize = SWAP_HL_UINT(parameterTypes.size());
+    deviceArray.append(reinterpret_cast<const char*>(&swappedParamSize), sizeof(UINT));
+    // Длина блока параметров для одного узла
+    UINT swappedNodeSize = SWAP_HL_UINT(sizeof(Node));
+    deviceArray.append(reinterpret_cast<const char*>(&swappedNodeSize), sizeof(UINT));
+    // Смещение таблицы параметров узлов
+    UINT swappedNodesOffset = SWAP_HL_UINT(0x00000020 + parameterTypes.size() * 8);
+    deviceArray.append(reinterpret_cast<const char*>(&swappedNodesOffset), sizeof(UINT));
+
+    // Запись таблицы параметров узлов
+    for (const NodeParameter &parameter : parameterTypes)
     {
-        return false;
+        // Смещение параметра i в блоке параметров узла
+        USHORT swappedParamOffset = SWAP_HL_SHORT(0);
+        deviceArray.append(reinterpret_cast<const char*>(&swappedParamOffset), sizeof(USHORT));
+        // Размер параметра i в байтах
+        USHORT swappedParamSize = SWAP_HL_SHORT(parameter.size);
+        deviceArray.append(reinterpret_cast<const char*>(&swappedParamSize), sizeof(USHORT));
+        // Тип параметра i
+        USHORT swappedParamType = SWAP_HL_SHORT(parameter.id);
+        deviceArray.append(reinterpret_cast<const char*>(&swappedParamType), sizeof(USHORT));
+        // Зарезервировано
+        USHORT swappedParamReserved = SWAP_HL_SHORT(0);
+        deviceArray.append(reinterpret_cast<const char*>(&swappedParamReserved), sizeof(USHORT));
     }
 
-    QDataStream out(&file);
+    // Запись блока параметров для каждого узла
+    for (const Node &node : nodes)
+    {
+        QByteArray nodeData;
+        // Идентификатор
+        UINT swappedNodeID = SWAP_HL_UINT(node.id);
+        nodeData.append(reinterpret_cast<const char*>(&swappedNodeID), sizeof(UINT));
+        // Текстовая строка
+        const char* textData = node.text.c_str();
+        deviceArray.append(textData, static_cast<int>(node.text.size()));
+        // Битовая маска
+        UINT swappedNodeStatus = SWAP_HL_UINT(node.status);
+        nodeData.append(reinterpret_cast<const char*>(&swappedNodeStatus), sizeof(UINT));
+        // Текущий режим
+        USHORT swappedNodeMode = SWAP_HL_SHORT(node.mode);
+        nodeData.append(reinterpret_cast<const char*>(&swappedNodeMode), sizeof(USHORT));
+        // Уровень мощности в хосте
+        nodeData.append(reinterpret_cast<const char*>(&node.levelHost), sizeof(UCHAR));
+        // Уровень мощности
+        nodeData.append(reinterpret_cast<const char*>(&node.levelNode), sizeof(UCHAR));
+        // Напряжение питания
+        USHORT swappedNodeVoltage = SWAP_HL_SHORT(node.voltage);
+        nodeData.append(reinterpret_cast<const char*>(&swappedNodeVoltage), sizeof(USHORT));
+        // Ток потребления
+        USHORT swappedNodeCurrent = SWAP_HL_SHORT(node.current);
+        nodeData.append(reinterpret_cast<const char*>(&swappedNodeCurrent), sizeof(USHORT));
+        // Потребленная энергия
+        UINT swappedNodeEnergy = SWAP_HL_UINT(node.energy);
+        nodeData.append(reinterpret_cast<const char*>(&swappedNodeEnergy), sizeof(UINT));
+        // Время работы узла
+        UINT swappedNodeWorkTime = SWAP_HL_UINT(node.worktime);
+        nodeData.append(reinterpret_cast<const char*>(&swappedNodeWorkTime), sizeof(UINT));
+
+        // Добавление данных узла в общий QByteArray
+        deviceArray.append(nodeData);
+    }
+
+    // Сохранение QByteArray в файл
+    QFile file("outputNew.dat");
+    if (file.open(QIODevice::WriteOnly))
+    {
+        file.write(deviceArray);
+        file.close();
+        return true;
+    }
+    else return false;
+}
+
+bool LampList::writeNodesToByteArray(const QList<Node> &nodes)
+{
+    deviceArray.clear();
+
+    QDataStream out(&deviceArray, QIODevice::WriteOnly);
     out.setByteOrder(QDataStream::LittleEndian);
 
     // Запись заголовка файла состояния
@@ -47,35 +135,38 @@ bool LampList::writeNodesToFile(const QString &fileName, const QList<Node> &node
     out << static_cast<quint32>(0x00000020 + 10 * 8); // Смещение таблицы параметров узлов
 
     // Запись таблицы параметров узлов
-    QList<quint16> parameterTypes = {
-        0xFF00, 0xFF01, 0xFF02, 0xFF03, 0xFF10, 0xFF11, 0xFF12, 0xFF13, 0xFF14, 0xFF15
+    QList<NodeParameter> parameterTypes = {
+        {0xFF00, 4}, {0xFF01, 0}, {0xFF02, 1}, {0xFF03, 2},
+        {0xFF10, 1}, {0xFF11, 1}, {0xFF12, 2}, {0xFF13, 2},
+        {0xFF14, 4}, {0xFF15, 4}
     };
 
-    for (quint16 type : parameterTypes)
+    for (const NodeParameter &parameter : parameterTypes)
     {
         out << quint16(0); // Смещение параметра
-        out << static_cast<quint16>(sizeof(quint16)); // Размер параметра
-        out << type; // Тип параметра
+        out << parameter.size; // Размер параметра
+        out << parameter.id; // Тип параметра
         out << quint16(0); // Зарезервировано
     }
 
     // Запись блока параметров для каждого узла
-    for (const Node& node : nodes)
+    for (const Node &node : nodes)
     {
+        // Сериализация данных узла в QByteArray
         QByteArray nodeData;
         QDataStream nodeStream(&nodeData, QIODevice::WriteOnly);
         nodeStream.setByteOrder(QDataStream::LittleEndian);
-
-        // Сериализация данных узла в QByteArray
-        nodeStream << node.id << node.text << node.status << node.mode
+        nodeStream << node.id;
+        QByteArray textData = QByteArray::fromStdString(node.text);
+        nodeStream << textData;
+        nodeStream << node.status << node.mode
                    << node.levelHost << node.levelNode << node.voltage
                    << node.current << node.energy << node.worktime;
 
-        // Запись данных узла в файл
+        // Запись данных узла в общий QByteArray
         out.writeRawData(nodeData.constData(), nodeData.size());
     }
 
-    qDebug () << &out;
-    file.close();
+    qDebug() << deviceArray;
     return true;
 }

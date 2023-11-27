@@ -83,7 +83,7 @@ void Device::setDefaults(const DeviceDefaults &defaults)
 
 void Device::setLampsList()
 {
-    _lampList.init();
+    _lampList.init(10, 50);
 }
 
 void Device::startWork()
