@@ -84,6 +84,15 @@ void Device::setDefaults(const DeviceDefaults &defaults)
 void Device::setLampsList()
 {
     _lampList.init(10, 50);
+    QByteArray file = _lampList.getFile();
+    _client->addFileToMap("STATE2.DAT", file);
+    // DEBUG FILES
+    _client->addFileToMap("INFO.DAT", file);
+    _client->addFileToMap("STATE1.DAT", file);
+    _client->addFileToMap("STATE2.NET", file);
+    _client->addFileToMap("SOBAKA.DAT", file);
+    _client->addFileToMap("A.DAT", file);
+    _client->addFileToMap("B.PDF", file);
 }
 
 void Device::startWork()

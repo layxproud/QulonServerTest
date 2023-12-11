@@ -35,6 +35,7 @@ class LampList
 public:
     LampList();
     void init(int num, int level);
+    QByteArray getFile();
 
 private:
     QList<Node> nodes;

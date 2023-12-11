@@ -16,7 +16,6 @@ TcpClient::TcpClient(Logger* logger, const QString& phone, QObject *parent)
     connect(&_modbusHandler, &ModbusHandler::wrongCRC, this, &TcpClient::onWrongCRC);
     connect(&_modbusHandler, &ModbusHandler::wrongTx, this, &TcpClient::onWrongTx);
     connect(&_modbusHandler, &ModbusHandler::unknownCommand, this, &TcpClient::onUnknownCommand);
-    connect(&_modbusHandler, &ModbusHandler::replyError, this, &TcpClient::onReplyError);
 
     _modbusHandler.initModbusHandler(_phone);
 }
@@ -62,6 +61,11 @@ void TcpClient::editLogStatus(const bool &status)
 {
     _logAllowed = status;
     qDebug () << "У устройства с ID " << _phone << " лог выставлен в " << _logAllowed;
+}
+
+void TcpClient::addFileToMap(const QString &fileName, const QByteArray &fileData)
+{
+    _modbusHandler.addFileToMap(fileName, fileData);
 }
 
 bool TcpClient::checkConnection()
@@ -133,13 +137,7 @@ void TcpClient::onUnknownCommand(const UCHAR &command)
 {
     QString commandString = QString("0x%1").arg(command, 2, 16, QChar('0'));
     if (_logAllowed)
-        _logger->logWarning(tr("ID ") + _phone + tr("Встретило незнакомую команду: ") + commandString + tr(" Отправляю стандартный ответ..."));
-}
-
-void TcpClient::onReplyError()
-{
-    if (_logAllowed)
-        _logger->logError(tr("Сервер сообщил о возникшей ошибке"));
+        _logger->logWarning(tr("Устройство с ID ") + _phone + tr(" встретило незнакомую команду: ") + commandString + tr(" Отправляю стандартный ответ..."));
 }
 
 void TcpClient::sendMessage(const QByteArray &message)

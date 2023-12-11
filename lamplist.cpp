@@ -34,6 +34,11 @@ void LampList::init(int num, int level)
         qDebug() << "Error writing nodes to file.";
 }
 
+QByteArray LampList::getFile()
+{
+    return deviceArray;
+}
+
 bool LampList::writeNodesToFile(const QList<Node> &nodes)
 {
     deviceArray.clear();

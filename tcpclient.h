@@ -21,6 +21,7 @@ public:
     void randomiseState();
     void editByte(const UCHAR &stateByte, const QByteArray &byte);
     void editLogStatus(const bool &status);
+    void addFileToMap(const QString &fileName, const QByteArray &fileData);
 
 private:
     QString _phone;
@@ -50,7 +51,6 @@ private slots:
                     const UCHAR &expected2, const UCHAR &received2);
     void onWrongTx(const UCHAR &expected, const UCHAR &received);
     void onUnknownCommand(const UCHAR &command);
-    void onReplyError();
 
     void sendMessage(const QByteArray& message);
 

@@ -2,6 +2,9 @@
 #define MODBUSHANDLER_H
 
 #include <QObject>
+#include <QRegularExpression>
+#include <QMap>
+#include <QDateTime>
 #include "Prot.h"
 
 class ModbusHandler : public QObject
@@ -14,6 +17,7 @@ public:
     void formStateMessage(const bool &outsideCall);
     void randomiseRelayStates();
     void editByte(const UCHAR &stateByte, const QByteArray &byte);
+    void addFileToMap(const QString &fileName, const QByteArray &fileData);
 
 private:
     const QByteArray SYNC_MESSAGE = QByteArray::fromHex("00800010");
@@ -27,18 +31,31 @@ private:
     QByteArray _currentMessage;
     QByteArray _receivedMessage;
 
+    // Stores relay state. Has default states, new can be added
     std::vector<FL_MODBUS_STATE_CMD_MESSAGE> stateMessage;
+    // Map for storing all virtual files.
+    QMap<QString, QByteArray> filesMap;
+    // Map's iterator to store current file.
+    QMap<QString, QByteArray>::iterator currentFileIterator;
+    // Stores info about current file
+    QByteArray currentFileInfo;
 
 private:
     void performCommand(const QByteArray &message);
     void formSyncMessage();
-    void formDefaultAnswer(const QByteArray& message);
+    void formDefaultAnswer(const QByteArray &message);
     void formIdentificationMessage();
-    void addState(const UCHAR& type, const QByteArray& data);
+    void addState(const UCHAR &type, const QByteArray &data);
+    void initFileSearch(const QByteArray &message);
+    void searchFile(const QByteArray &message);
+    void fileResult();
+    void replyError(UCHAR errorCode);
 
     QByteArray addMarkerBytes(const QByteArray& input);
     QByteArray transformToData(const QByteArray& input);
     QByteArray transformToRaw(const QByteArray& message);
+    QString extractFileNameTemplate(const QByteArray &message);
+    QByteArray extractDateTime();
 
 signals:
     QByteArray messageToSend(const QByteArray& message);
@@ -46,7 +63,6 @@ signals:
                   const UCHAR &expected2, const UCHAR &received2);
     void wrongTx(const UCHAR &expected, const UCHAR &received);
     void unknownCommand(const UCHAR &command);
-    void replyError();
 };
 
 #endif // MODBUSHANDLER_H
