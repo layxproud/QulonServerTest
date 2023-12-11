@@ -53,11 +53,13 @@ bool LampList::writeNodesToFile(const QList<Node> &nodes)
     UINT swappedNodesOffset = SWAP_HL_UINT(0x00000020 + parameterTypes.size() * 8);
     deviceArray.append(reinterpret_cast<const char*>(&swappedNodesOffset), sizeof(UINT));
 
+    USHORT prevOffset = 0;
+
     // Запись таблицы параметров узлов
     for (const NodeParameter &parameter : parameterTypes)
     {
         // Смещение параметра i в блоке параметров узла
-        USHORT swappedParamOffset = SWAP_HL_SHORT(0);
+        USHORT swappedParamOffset = SWAP_HL_SHORT(prevOffset);
         deviceArray.append(reinterpret_cast<const char*>(&swappedParamOffset), sizeof(USHORT));
         // Размер параметра i в байтах
         USHORT swappedParamSize = SWAP_HL_SHORT(parameter.size);
@@ -68,6 +70,8 @@ bool LampList::writeNodesToFile(const QList<Node> &nodes)
         // Зарезервировано
         USHORT swappedParamReserved = SWAP_HL_SHORT(0);
         deviceArray.append(reinterpret_cast<const char*>(&swappedParamReserved), sizeof(USHORT));
+
+        prevOffset += parameter.size;
     }
 
     // Запись блока параметров для каждого узла
