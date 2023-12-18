@@ -36,6 +36,8 @@ public:
     LampList();
     void init(int num, int level = 0, UCHAR status = 0x00);
     QByteArray getFile();
+    Node* getNodeById(UINT id);
+    void updateNodes();
 
 private:
     QList<Node> nodes;

@@ -17,7 +17,7 @@ void LampList::init(int num, int level, UCHAR status)
         Node newNode;
         newNode.id = SWAP_HL_UINT(i);
         newNode.status = status;
-        newNode.mode = SWAP_HL_UINT(0);
+        newNode.mode = SWAP_HL_SHORT(0);
         newNode.levelHost = level;
         newNode.levelNode = 0;
         newNode.voltage = SWAP_HL_SHORT(220);
@@ -34,6 +34,23 @@ void LampList::init(int num, int level, UCHAR status)
 QByteArray LampList::getFile()
 {
     return deviceArray;
+}
+
+Node* LampList::getNodeById(UINT id)
+{
+    UINT swappedID = SWAP_HL_UINT(id);
+    for (Node &node : nodes)
+    {
+        if (node.id == swappedID)
+            return &node;
+    }
+    return nullptr;
+}
+
+void LampList::updateNodes()
+{
+    if (!writeNodesToFile(nodes))
+        qDebug() << "Error writing nodes to file.";
 }
 
 bool LampList::writeNodesToFile(const QList<Node> &nodes)
@@ -127,17 +144,19 @@ bool LampList::writeNodesToByteArray(const QList<Node> &nodes)
     UINT swappedParamSize = SWAP_HL_UINT(parameterTypes.size());
     deviceArray.append(reinterpret_cast<const char*>(&swappedParamSize), sizeof(UINT));
     // Длина блока параметров для одного узла
-    UINT swappedNodeSize = SWAP_HL_UINT(sizeof(Node));
+    UINT swappedNodeSize = SWAP_HL_UINT(24);
     deviceArray.append(reinterpret_cast<const char*>(&swappedNodeSize), sizeof(UINT));
     // Смещение таблицы параметров узлов
     UINT swappedNodesOffset = SWAP_HL_UINT(0x00000020 + parameterTypes.size() * 8);
     deviceArray.append(reinterpret_cast<const char*>(&swappedNodesOffset), sizeof(UINT));
 
+    USHORT prevOffset = 0;
+
     // Запись таблицы параметров узлов
     for (const NodeParameter &parameter : parameterTypes)
     {
         // Смещение параметра i в блоке параметров узла
-        USHORT swappedParamOffset = SWAP_HL_SHORT(0);
+        USHORT swappedParamOffset = SWAP_HL_SHORT(prevOffset);
         deviceArray.append(reinterpret_cast<const char*>(&swappedParamOffset), sizeof(USHORT));
         // Размер параметра i в байтах
         USHORT swappedParamSize = SWAP_HL_SHORT(parameter.size);
@@ -148,6 +167,8 @@ bool LampList::writeNodesToByteArray(const QList<Node> &nodes)
         // Зарезервировано
         USHORT swappedParamReserved = SWAP_HL_SHORT(0);
         deviceArray.append(reinterpret_cast<const char*>(&swappedParamReserved), sizeof(USHORT));
+
+        prevOffset += parameter.size;
     }
 
     // Запись блока параметров для каждого узла
@@ -155,35 +176,26 @@ bool LampList::writeNodesToByteArray(const QList<Node> &nodes)
     {
         QByteArray nodeData;
         // Идентификатор
-        UINT swappedNodeID = SWAP_HL_UINT(node.id);
-        nodeData.append(reinterpret_cast<const char*>(&swappedNodeID), sizeof(UINT));
+        nodeData.append(reinterpret_cast<const char*>(&node.id), sizeof(UINT));
         // Битовая маска
-        UINT swappedNodeStatus = SWAP_HL_UINT(node.status);
-        nodeData.append(reinterpret_cast<const char*>(&swappedNodeStatus), sizeof(UINT));
+        nodeData.append(reinterpret_cast<const char*>(&node.status), sizeof(UCHAR));
         // Текущий режим
-        USHORT swappedNodeMode = SWAP_HL_SHORT(node.mode);
-        nodeData.append(reinterpret_cast<const char*>(&swappedNodeMode), sizeof(USHORT));
+        nodeData.append(reinterpret_cast<const char*>(&node.mode), sizeof(USHORT));
         // Уровень мощности в хосте
         nodeData.append(reinterpret_cast<const char*>(&node.levelHost), sizeof(UCHAR));
         // Уровень мощности
         nodeData.append(reinterpret_cast<const char*>(&node.levelNode), sizeof(UCHAR));
         // Напряжение питания
-        USHORT swappedNodeVoltage = SWAP_HL_SHORT(node.voltage);
-        nodeData.append(reinterpret_cast<const char*>(&swappedNodeVoltage), sizeof(USHORT));
+        nodeData.append(reinterpret_cast<const char*>(&node.voltage), sizeof(USHORT));
         // Ток потребления
-        USHORT swappedNodeCurrent = SWAP_HL_SHORT(node.current);
-        nodeData.append(reinterpret_cast<const char*>(&swappedNodeCurrent), sizeof(USHORT));
+        nodeData.append(reinterpret_cast<const char*>(&node.current), sizeof(USHORT));
         // Потребленная энергия
-        UINT swappedNodeEnergy = SWAP_HL_UINT(node.energy);
-        nodeData.append(reinterpret_cast<const char*>(&swappedNodeEnergy), sizeof(UINT));
+        nodeData.append(reinterpret_cast<const char*>(&node.energy), sizeof(UINT));
         // Время работы узла
-        UINT swappedNodeWorkTime = SWAP_HL_UINT(node.worktime);
-        nodeData.append(reinterpret_cast<const char*>(&swappedNodeWorkTime), sizeof(UINT));
+        nodeData.append(reinterpret_cast<const char*>(&node.worktime), sizeof(UINT));
 
         // Добавление данных узла в общий QByteArray
         deviceArray.append(nodeData);
     }
-
-    qDebug() << deviceArray;
     return true;
 }

@@ -29,6 +29,7 @@ public:
     // Getters
     QString getPhone() const;
     QString getName() const;
+    LampList *getLampList() const;
     bool isConnected() const;
 
     // Setters
@@ -36,7 +37,7 @@ public:
     void setPort(const quint16 &port);
     void setAutoRegen(const bool &regen);
     void setDefaults(const DeviceDefaults& defaults);
-    void setLampsList();
+    void setLampsList(int size, int level, UCHAR status);
 
     void startWork();
     void stopWork();
@@ -55,7 +56,7 @@ private:
     bool _autoRegen;
     DeviceDefaults _defaults;
 
-    LampList _lampList;
+    LampList* _lampList;
     Logger* _logger;
     TcpClient* _client;
 

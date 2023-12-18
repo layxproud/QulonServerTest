@@ -8,7 +8,8 @@ Device::Device(QObject *parent)
     connectionTimer(new QTimer(this)),
     disconnectionTimer(new QTimer(this)),
     sendStatusTimer(new QTimer(this)),
-    changeStatusTimer(new QTimer(this))
+    changeStatusTimer(new QTimer(this)),
+    _lampList(new LampList)
 {
 
 }
@@ -22,10 +23,6 @@ Device::Device(const QString &phone, const QString &name, Logger *logger, QObjec
     _client = new TcpClient(_logger, _phone, this);
     connect(_client, &TcpClient::connectionChanged, this, &Device::onConnectionChanged);
     _connected = _client->isConnected();
-
-    _lampList.init(10, 50);
-    QByteArray file = _lampList.getFile();
-    _client->addFileToMap("STATE2.DAT", file);
 
     connect(connectionTimer, &QTimer::timeout, this, &Device::onConnectionTimerTimeout);
     connect(disconnectionTimer, &QTimer::timeout, this, &Device::onDisconnectionTimerTimeout);
@@ -43,6 +40,8 @@ Device::~Device()
 
     if (_client->isConnected())
         _client->disconnectFromServer();
+
+    delete _lampList;
 }
 
 QString Device::getPhone() const
@@ -53,6 +52,11 @@ QString Device::getPhone() const
 QString Device::getName() const
 {
     return _name;
+}
+
+LampList* Device::getLampList() const
+{
+    return _lampList;
 }
 
 bool Device::isConnected() const
@@ -85,10 +89,10 @@ void Device::setDefaults(const DeviceDefaults &defaults)
     editLogStatus(defaults.logStatus);
 }
 
-void Device::setLampsList()
+void Device::setLampsList(int size, int level, UCHAR status)
 {
-    _lampList.init(10, 50);
-    QByteArray file = _lampList.getFile();
+    _lampList->init(size, level, status);
+    QByteArray file = _lampList->getFile();
     _client->addFileToMap("STATE2.DAT", file);
     // DEBUG FILES
     _client->addFileToMap("INFO.DAT", file);

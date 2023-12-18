@@ -21,12 +21,18 @@ public:
 private:
     Ui::LightDevicesWindow *ui;
     QMap<QString, Device*> devices;
+    LampList* lampList;
+    Node* lampNode;
 
     void updateDeviceComboBox();
+    void updateLampsComboBox();
+    void updateStatusComboBox(UCHAR status);
+    void updateValues();
 
 private slots:
     void onCreateLampsCheckBoxStateChanged(int state);
-
+    void onLampsComboIndexChaned(int index);
+    void onSaveButtonClicked();
 
 };
 

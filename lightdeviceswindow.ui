@@ -161,7 +161,7 @@
           <number>100</number>
          </property>
          <property name="value">
-          <number>100</number>
+          <number>0</number>
          </property>
         </widget>
        </item>
