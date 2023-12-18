@@ -23,6 +23,10 @@ Device::Device(const QString &phone, const QString &name, Logger *logger, QObjec
     connect(_client, &TcpClient::connectionChanged, this, &Device::onConnectionChanged);
     _connected = _client->isConnected();
 
+    _lampList.init(10, 50);
+    QByteArray file = _lampList.getFile();
+    _client->addFileToMap("STATE2.DAT", file);
+
     connect(connectionTimer, &QTimer::timeout, this, &Device::onConnectionTimerTimeout);
     connect(disconnectionTimer, &QTimer::timeout, this, &Device::onDisconnectionTimerTimeout);
     connect(sendStatusTimer, &QTimer::timeout, this, &Device::onSendStatusTimerTimeout);

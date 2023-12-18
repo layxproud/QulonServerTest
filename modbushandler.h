@@ -37,8 +37,11 @@ private:
     QMap<QString, QByteArray> filesMap;
     // Map's iterator to store current file.
     QMap<QString, QByteArray>::iterator currentFileIterator;
-    // Stores info about current file
+    // Stores current file
     QByteArray currentFileInfo;
+    QByteArray currentFileData;
+
+    bool endOfFile = false;
 
 private:
     void performCommand(const QByteArray &message);
@@ -48,7 +51,10 @@ private:
     void addState(const UCHAR &type, const QByteArray &data);
     void initFileSearch(const QByteArray &message);
     void searchFile(const QByteArray &message);
-    void fileResult();
+    void fileResult(bool calledAsResult);
+    void openReadFile(const QByteArray &message);
+    void readFile(const QByteArray &message);
+    void closeFile(const QByteArray &message);
     void replyError(UCHAR errorCode);
 
     QByteArray addMarkerBytes(const QByteArray& input);

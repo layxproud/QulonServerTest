@@ -8,7 +8,7 @@ LampList::LampList()
 {
 }
 
-void LampList::init(int num, int level)
+void LampList::init(int num, int level, UCHAR status)
 {
     nodes.clear();
 
@@ -16,10 +16,9 @@ void LampList::init(int num, int level)
     {
         Node newNode;
         newNode.id = SWAP_HL_UINT(i);
-        newNode.status = SWAP_HL_UINT(0);
+        newNode.status = status;
         newNode.mode = SWAP_HL_UINT(0);
         newNode.levelHost = level;
-        qDebug() << "У устройства с id: " << i << " выставлен уровень хоста " << level;
         newNode.levelNode = 0;
         newNode.voltage = SWAP_HL_SHORT(220);
         newNode.current = SWAP_HL_SHORT(200);
@@ -28,9 +27,7 @@ void LampList::init(int num, int level)
         nodes.append(newNode);
     }
 
-    if (writeNodesToFile(nodes))
-        qDebug() << "Nodes written to file successfully.";
-    else
+    if (!writeNodesToFile(nodes))
         qDebug() << "Error writing nodes to file.";
 }
 
@@ -86,7 +83,7 @@ bool LampList::writeNodesToFile(const QList<Node> &nodes)
         // Идентификатор
         nodeData.append(reinterpret_cast<const char*>(&node.id), sizeof(UINT));
         // Битовая маска
-        nodeData.append(reinterpret_cast<const char*>(&node.status), sizeof(UINT));
+        nodeData.append(reinterpret_cast<const char*>(&node.status), sizeof(UCHAR));
         // Текущий режим
         nodeData.append(reinterpret_cast<const char*>(&node.mode), sizeof(USHORT));
         // Уровень мощности в хосте

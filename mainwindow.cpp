@@ -10,6 +10,7 @@ MainWindow::MainWindow(QWidget *parent)
     , isRunning(false)
     , selectedDevices{}
     , toggledDevices{}
+    , lightDevicesWindow{nullptr}
 {
     ui->setupUi(this);
     logger->setLogWindow(ui->logWindow);
@@ -172,7 +173,7 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
     headerCheckBox->setVisible(true);
     headerCheckBox->setGeometry(0, 0, firstColumnWidth, headerHeight);
 
-    connect(ui->deviceTable->horizontalHeader(), &QHeaderView::sectionResized, this, [=](int logicalIndex, int oldSize, int newSize) {
+    connect(ui->deviceTable->horizontalHeader(), &QHeaderView::sectionResized, this, [=](int logicalIndex, int newSize) {
         if (logicalIndex == 0)
         {
             headerCheckBox->setGeometry(0, 0, newSize, headerHeight);
@@ -543,9 +544,12 @@ void MainWindow::onByteCalculated(const QByteArray &byte)
 
 void MainWindow::onListOfLampsActionTriggered()
 {
-    for (Device* device : iniParser->devices)
-        if (device)
-            device->setLampsList();
+    if (!lightDevicesWindow || lightDevicesWindow->isHidden()) {
+        delete lightDevicesWindow;
+        lightDevicesWindow = new LightDevicesWindow(this);
+        lightDevicesWindow->setDevices(iniParser->devices);
+        lightDevicesWindow->show();
+    }
 }
 
 

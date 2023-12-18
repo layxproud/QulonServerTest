@@ -79,7 +79,7 @@ void ModbusHandler::parseMessage(const QByteArray &message)
             }
         }
         // FL_MODBUS_MESSAGE_SHORT case
-        // TODO. I don't get the difference between MODBUS_MESSAGE and FL_MODBUS_MESSAGE_SHORT
+        // Пока что таких сообщений не приходило и обрабатывать их не умеем
     }
 }
 
@@ -104,7 +104,19 @@ void ModbusHandler::performCommand(const QByteArray &message)
         break;
 
     case PROT_FILE_RESULT_CMD:
-        fileResult();
+        fileResult(true);
+        break;
+
+    case PROT_FILE_OPEN_RD_CMD:
+        openReadFile(message);
+        break;
+
+    case PROT_FILE_RD_CMD:
+        readFile(message);
+        break;
+
+    case PROT_FILE_CLOSE_CMD:
+        closeFile(message);
         break;
 
     default:
@@ -305,11 +317,10 @@ void ModbusHandler::searchFile(const QByteArray &message)
             currentFileInfo.append(static_cast<UCHAR>(PROT_FILE_NAME_EQ)); // имя совпадает с шаблоном
             currentFileInfo.append(QByteArray(5, '\0')); // зарезервировано
             int size = currentFileIterator.value().size();
-            size = qToBigEndian(size); // or qToLittleEndian(size) depending on your needs
+            size = qToBigEndian(size);
             currentFileInfo.append(reinterpret_cast<const char*>(&size), sizeof(int));
             QByteArray dateArray = extractDateTime();
             currentFileInfo.append(dateArray); // дата и время
-            //currentFileInfo.append(QByteArray::fromHex("0B0C17150000"));
             currentFileInfo.append(fileName.toUtf8()); // имя файла
             currentFileInfo.append('\0');
 
@@ -324,7 +335,7 @@ void ModbusHandler::searchFile(const QByteArray &message)
     currentFileInfo.clear();
 }
 
-void ModbusHandler::fileResult()
+void ModbusHandler::fileResult(bool calledAsResult)
 {
     if (currentFileInfo.isEmpty())
     {
@@ -345,7 +356,10 @@ void ModbusHandler::fileResult()
     modbusMessage.FUNCT = 0x6E;
     modbusMessage.sour_address = _myAddr;
     modbusMessage.dist_address = _serverAddr;
-    modbusMessage.command = PROT_FILE_RESULT_OK;
+    if (calledAsResult)
+        modbusMessage.command = PROT_FILE_RESULT_OK;
+    else
+        modbusMessage.command = PROT_FILE_OPEN_RD_OK;
     modbusMessage.len = static_cast<unsigned char>(rawData.size());
     QByteArray header(reinterpret_cast<const char*>(&modbusMessage), sizeof(modbusMessage));
 
@@ -366,6 +380,103 @@ void ModbusHandler::fileResult()
     _currRx = modbusMessage.rx_id;
 
     emit messageToSend(byteArray);
+}
+
+void ModbusHandler::openReadFile(const QByteArray &message)
+{
+    QString fileName = extractFileNameTemplate(message);
+
+    for(auto it = filesMap.begin(); it != filesMap.end(); ++it)
+    {
+        if(it.key() == fileName)
+        {
+            currentFileInfo.clear();
+            currentFileInfo.append(static_cast<UCHAR>(PROT_FILE_NAME_EQ)); // имя совпадает с шаблоном
+            currentFileInfo.append(QByteArray(5, '\0')); // зарезервировано
+            int size = it.value().size();
+            size = qToBigEndian(size);
+            currentFileInfo.append(reinterpret_cast<const char*>(&size), sizeof(int));
+            QByteArray dateArray = extractDateTime();
+            currentFileInfo.append(dateArray); // дата и время
+            currentFileInfo.append(fileName.toUtf8()); // имя файла
+            currentFileInfo.append('\0');
+            currentFileData.append(it.value());
+            fileResult(false);
+            return;
+        }
+    }
+
+    // По идее если не нашли по каким то причинам файл надо кинуть ошибку
+    replyError(PROT_ERR_NO_FILE);
+}
+
+void ModbusHandler::readFile(const QByteArray &message)
+{
+    if (endOfFile)
+    {
+        replyError(PROT_ERR_END_OF_FILE);
+        return;
+    }
+    UCHAR crc[2];
+
+    QByteArray messageData = message.mid(8, 5);
+
+
+    quint32 offset = static_cast<quint32>((unsigned char)(messageData[0]) << 24 |
+                                          (unsigned char)(messageData[1]) << 16 |
+                                          (unsigned char)(messageData[2]) << 8  |
+                                          (unsigned char)(messageData[3]));
+    quint8 blockLength = static_cast<quint8>(messageData[4]);
+
+    if (offset + blockLength >= currentFileData.size())
+        endOfFile = true;
+
+    // DATA
+    QByteArray data;
+    data.append(static_cast<char>((offset >> 24) & 0xFF));
+    data.append(static_cast<char>((offset >> 16) & 0xFF));
+    data.append(static_cast<char>((offset >> 8) & 0xFF));
+    data.append(static_cast<char>(offset & 0xFF));
+    data.append(currentFileData.mid(offset, blockLength));
+    QByteArray rawData(transformToRaw(data));
+
+    // HEADER
+    FL_MODBUS_MESSAGE modbusMessage;
+    modbusMessage.tx_id = _currTx + 0x01;
+    modbusMessage.rx_id = _currRx + 0x01;
+    modbusMessage.dist_addressMB = _myAddr;
+    modbusMessage.FUNCT = 0x6E;
+    modbusMessage.sour_address = _myAddr;
+    modbusMessage.dist_address = _serverAddr;
+    modbusMessage.command = PROT_FILE_RD_OK;
+    modbusMessage.len = static_cast<unsigned char>(rawData.size());
+    QByteArray header(reinterpret_cast<const char*>(&modbusMessage), sizeof(modbusMessage));
+
+    // CRC
+    CalculateCRC(modbusMessage, rawData, crc);
+
+    // Transform to modbus protocol
+    QByteArray messageArray;
+    messageArray.append(header);
+    messageArray.append(rawData);
+    messageArray.append(crc[0]);
+    messageArray.append(crc[1]);
+    messageArray = transformToData(messageArray);
+    QByteArray byteArray = addMarkerBytes(messageArray);
+
+    _currentMessage = byteArray;
+    _currTx = modbusMessage.tx_id;
+    _currRx = modbusMessage.rx_id;
+
+    emit messageToSend(byteArray);
+}
+
+void ModbusHandler::closeFile(const QByteArray &message)
+{
+    endOfFile = false;
+    currentFileData.clear();
+    currentFileInfo.clear();
+    formDefaultAnswer(message);
 }
 
 void ModbusHandler::replyError(UCHAR errorCode)

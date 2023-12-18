@@ -20,7 +20,7 @@ struct NodeParameter
 struct Node
 {
     UINT id;                // Уникальный идентификатор узла
-    UINT status;            // Битовая маска статуса узла
+    UCHAR status;            // Битовая маска статуса узла
     USHORT mode;            // Текущий режим
     UCHAR levelHost;        // Уровень мощности в хосте (в процентах)
     UCHAR levelNode;        // Уровень мощности (в процентах)
@@ -34,7 +34,7 @@ class LampList
 {
 public:
     LampList();
-    void init(int num, int level);
+    void init(int num, int level = 0, UCHAR status = 0x00);
     QByteArray getFile();
 
 private:

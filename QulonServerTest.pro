@@ -14,6 +14,7 @@ SOURCES += \
     device.cpp \
     iniparser.cpp \
     lamplist.cpp \
+    lightdeviceswindow.cpp \
     logger.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -27,12 +28,14 @@ HEADERS += \
     device.h \
     iniparser.h \
     lamplist.h \
+    lightdeviceswindow.h \
     logger.h \
     mainwindow.h \
     modbushandler.h \
     tcpclient.h
 
 FORMS += \
+    lightdeviceswindow.ui \
     mainwindow.ui
 
 # Default rules for deployment.

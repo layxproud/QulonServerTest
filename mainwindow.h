@@ -11,6 +11,7 @@
 #include "iniparser.h"
 #include "logger.h"
 #include "calculatebytewidget.h"
+#include "lightdeviceswindow.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -32,6 +33,7 @@ private:
     Ui::MainWindow* ui;
     Logger* logger;
     IniParser* iniParser;
+    LightDevicesWindow* lightDevicesWindow;
 
     // Запущен ли сервер
     bool isRunning;
