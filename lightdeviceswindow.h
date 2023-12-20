@@ -33,6 +33,8 @@ private:
     LampList* lampList;
     Node* lampNode;
     LampState currentState;
+    UINT prevLampID;
+    UINT currLampID;
 
     bool isProgrammaticChange;
 

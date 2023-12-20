@@ -1,6 +1,7 @@
 #include "lightdeviceswindow.h"
 #include "ui_lightdeviceswindow.h"
 #include <QDebug>
+#include <QRandomGenerator>
 
 LightDevicesWindow::LightDevicesWindow(QWidget *parent) :
     QDialog(parent),
@@ -27,6 +28,8 @@ LightDevicesWindow::LightDevicesWindow(QWidget *parent) :
     ui->statusCombo->setCurrentIndex(0);
 
     currentState = LampState::SetForChosen;
+    currLampID = 1;
+    prevLampID = 1;
 }
 
 void LightDevicesWindow::setDevices(const QMap<QString, Device *> &devices)
@@ -135,13 +138,33 @@ UCHAR LightDevicesWindow::getSelectedStatus()
     }
 }
 
+// This method changes values in node before switching to next element (deivce or lamp)
 void LightDevicesWindow::updateValues()
 {
+    if (!lampNode)
+        return;
 
-    if (lampNode)
+    switch (currentState)
     {
-        lampNode->levelHost = ui->hostLevelSpinBox->value();
-        lampNode->status = getSelectedStatus();
+        case LampState::SetForChosen:
+        {
+            lampNode->levelHost = ui->hostLevelSpinBox->value();
+            lampNode->status = getSelectedStatus();
+            break;
+        }
+
+        default:
+        {
+            for (auto &device : devices)
+            {
+                lampList = device->getLampList();
+                lampNode = lampList->getNodeById(prevLampID);
+
+                lampNode->levelHost = ui->hostLevelSpinBox->value();
+                lampNode->status = getSelectedStatus();
+            }
+            break;
+        }
     }
 }
 
@@ -176,30 +199,103 @@ void LightDevicesWindow::onDevicesComboIndexChanged()
 
 void LightDevicesWindow::onLampsComboIndexChaned()
 {
-    updateValues();
-    QString selectedDeviceName = ui->devicesCombo->currentText();
-    Device* selectedDevice = devices[selectedDeviceName];
-
-    UINT lampId = ui->lampsCombo->currentIndex() + 1;
-
-    lampList = selectedDevice->getLampList();
-    lampNode = lampList->getNodeById(lampId);
-
-    if (lampNode)
+    prevLampID = currLampID;
+    if (ui->lampsCombo->count() == 0)
     {
-        ui->hostLevelSpinBox->setValue(lampNode->levelHost);
-        updateStatusComboBox(lampNode->status);
+        currLampID = 1;
+    }
+    else
+    {
+        currLampID = ui->lampsCombo->currentIndex() + 1;
+    }
+
+    updateValues();
+
+    switch (currentState)
+    {
+        case LampState::SetForChosen:
+        {
+            QString selectedDeviceName = ui->devicesCombo->currentText();
+            Device* selectedDevice = devices[selectedDeviceName];
+
+            lampList = selectedDevice->getLampList();
+            lampNode = lampList->getNodeById(currLampID);
+
+            if (lampNode)
+            {
+                ui->hostLevelSpinBox->setValue(lampNode->levelHost);
+                updateStatusComboBox(lampNode->status);
+            }
+
+            break;
+        }
+
+        default:
+        {
+            Device* currentDevice = devices.begin().value();
+
+            lampList = currentDevice->getLampList();
+            lampNode = lampList->getNodeById(currLampID);
+
+            if (lampNode)
+            {
+                ui->hostLevelSpinBox->setValue(lampNode->levelHost);
+                updateStatusComboBox(lampNode->status);
+            }
+
+            break;
+        }
     }
 }
 
 void LightDevicesWindow::onSaveButtonClicked()
 {
+    // Update prevLampId for setForAll state
+    prevLampID = ui->lampsCombo->currentIndex() + 1;
     updateValues();
+
     for (auto &device : devices)
     {
         lampList = device->getLampList();
-        lampList->updateNodes();
+        switch (currentState)
+        {
+            case LampState::SetRandom:
+            {
+                QList<Node> *nodesList = lampList->getNodesList();
+
+                for (auto &node : *nodesList)
+                {
+                    // levelHost
+                    if (node.levelHost > 0)
+                    {
+                        int randomValue = QRandomGenerator::global()->bounded(node.levelHost + 1);
+                        node.levelHost = randomValue;
+                    }
+
+                    // status
+                    int randomStatusIndex = QRandomGenerator::global()->bounded(3);
+                    switch (randomStatusIndex)
+                    {
+                        case 0:
+                            node.status = 0x00;
+                            break;
+                        case 1:
+                            node.status = 0x40;
+                            break;
+                        case 2:
+                            node.status = 0x80;
+                            break;
+                    }
+                }
+                break;
+            }
+
+            default:
+                lampList->updateNodes();
+                break;
+        }
     }
+
     this->close();
 }
 
@@ -210,7 +306,7 @@ void LightDevicesWindow::onCancelButtonClicked()
         lampList = device->getLampList();
         lampList->restoreInitialState();
     }
-    QDialog::close();
+    this->close();
 }
 
 void LightDevicesWindow::onSetForChosenToggled()

@@ -544,6 +544,12 @@ void MainWindow::onByteCalculated(const QByteArray &byte)
 
 void MainWindow::onListOfLampsActionTriggered()
 {
+    if (iniParser->devices.isEmpty())
+    {
+        logger->logWarning(tr("Сначала откройте список устройств!"));
+        return;
+    }
+
     if (!lightDevicesWindow || lightDevicesWindow->isHidden()) {
         delete lightDevicesWindow;
         lightDevicesWindow = new LightDevicesWindow(this);

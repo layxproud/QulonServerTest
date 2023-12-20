@@ -40,6 +40,7 @@ public:
     void init(int num, int level = 0, UCHAR status = 0x00);
     QByteArray getFile();
     Node* getNodeById(UINT id);
+    QList<Node> *getNodesList();
     void updateNodes();
     bool isNodesListEmpty() const;
     int getNodesListSize() const;

@@ -49,6 +49,11 @@ Node* LampList::getNodeById(UINT id)
     return nullptr;
 }
 
+QList<Node> *LampList::getNodesList()
+{
+    return &nodes;
+}
+
 void LampList::updateNodes()
 {
     if (!writeNodesToFile(nodes))
