@@ -124,26 +124,24 @@ void LightDevicesWindow::updateStatusComboBox(UCHAR status)
         ui->statusCombo->setCurrentIndex(2);
 }
 
+UCHAR LightDevicesWindow::getSelectedStatus()
+{
+    switch (ui->statusCombo->currentIndex())
+    {
+        case 0: return 0x00; // STATUS_NORMAL
+        case 1: return 0x40; // STATUS_WARNING
+        case 2: return 0x80; // STATUS_ERROR
+        default: return 0x00;
+    }
+}
+
 void LightDevicesWindow::updateValues()
 {
-    switch(currentState)
+
+    if (lampNode)
     {
-        case LampState::SetForChosen:
-        {
-            if (lampNode)
-            {
-                lampNode->levelHost = ui->hostLevelSpinBox->value();
-                lampNode->status = [this]() -> UCHAR {
-                    switch (ui->statusCombo->currentIndex()) {
-                    case 0: return 0x00; // STATUS_NORMAL
-                    case 1: return 0x40; // STATUS_WARNING
-                    case 2: return 0x80; // STATUS_ERROR
-                    default: return 0x00;
-                    }
-                }();
-            }
-            break;
-        }
+        lampNode->levelHost = ui->hostLevelSpinBox->value();
+        lampNode->status = getSelectedStatus();
     }
 }
 
@@ -161,7 +159,7 @@ void LightDevicesWindow::onCreateLampsCheckBoxStateChanged(int state)
         for (auto &device: devices)
         {
             int size = ui->lampsNumberSpinBox->value();
-            device->setLampsList(size, 50, 0x00);
+            device->setLampsList(size, 100, 0x00);
         }
         updateLampsComboBox();
     }
@@ -179,25 +177,18 @@ void LightDevicesWindow::onDevicesComboIndexChanged()
 void LightDevicesWindow::onLampsComboIndexChaned()
 {
     updateValues();
+    QString selectedDeviceName = ui->devicesCombo->currentText();
+    Device* selectedDevice = devices[selectedDeviceName];
+
     UINT lampId = ui->lampsCombo->currentIndex() + 1;
 
-    switch(currentState)
+    lampList = selectedDevice->getLampList();
+    lampNode = lampList->getNodeById(lampId);
+
+    if (lampNode)
     {
-        case LampState::SetForChosen:
-        {
-            QString selectedDeviceName = ui->devicesCombo->currentText();
-            Device* selectedDevice = devices[selectedDeviceName];
-
-            lampList = selectedDevice->getLampList();
-            lampNode = lampList->getNodeById(lampId);
-
-            if (lampNode)
-            {
-                ui->hostLevelSpinBox->setValue(lampNode->levelHost);
-                updateStatusComboBox(lampNode->status);
-            }
-            break;
-        }
+        ui->hostLevelSpinBox->setValue(lampNode->levelHost);
+        updateStatusComboBox(lampNode->status);
     }
 }
 

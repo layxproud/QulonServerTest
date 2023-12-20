@@ -40,6 +40,7 @@ private:
     void updateDeviceComboBox();
     void updateLampsComboBox();
     void updateStatusComboBox(UCHAR status);
+    UCHAR getSelectedStatus();
     void updateValues();
 
 signals:
