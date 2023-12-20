@@ -77,16 +77,6 @@
    <item>
     <layout class="QHBoxLayout" name="paramsRegimeLayout">
      <item>
-      <widget class="QRadioButton" name="setForAllRadio">
-       <property name="text">
-        <string>Для всех</string>
-       </property>
-       <property name="checked">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QRadioButton" name="setForChosenRadio">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -96,6 +86,19 @@
        </property>
        <property name="text">
         <string>По отдельности</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QRadioButton" name="setForAllRadio">
+       <property name="text">
+        <string>Для всех</string>
+       </property>
+       <property name="checked">
+        <bool>false</bool>
        </property>
       </widget>
      </item>

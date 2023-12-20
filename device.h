@@ -84,6 +84,7 @@ private slots:
     void onDisconnectionTimerTimeout();
     void onSendStatusTimerTimeout();
     void onChangeStatusTimeTimeout();
+    void onNodesUpdated();
 
 signals:
     void connectionChanged(const bool &status);

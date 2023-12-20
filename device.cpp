@@ -9,7 +9,7 @@ Device::Device(QObject *parent)
     disconnectionTimer(new QTimer(this)),
     sendStatusTimer(new QTimer(this)),
     changeStatusTimer(new QTimer(this)),
-    _lampList(new LampList)
+    _lampList(new LampList(this))
 {
 
 }
@@ -28,6 +28,7 @@ Device::Device(const QString &phone, const QString &name, Logger *logger, QObjec
     connect(disconnectionTimer, &QTimer::timeout, this, &Device::onDisconnectionTimerTimeout);
     connect(sendStatusTimer, &QTimer::timeout, this, &Device::onSendStatusTimerTimeout);
     connect(changeStatusTimer, &QTimer::timeout, this, &Device::onChangeStatusTimeTimeout);
+    connect(_lampList, &LampList::nodesUpdated, this, &Device::onNodesUpdated);
 }
 
 Device::~Device()
@@ -40,8 +41,6 @@ Device::~Device()
 
     if (_client->isConnected())
         _client->disconnectFromServer();
-
-    delete _lampList;
 }
 
 QString Device::getPhone() const
@@ -92,15 +91,6 @@ void Device::setDefaults(const DeviceDefaults &defaults)
 void Device::setLampsList(int size, int level, UCHAR status)
 {
     _lampList->init(size, level, status);
-    QByteArray file = _lampList->getFile();
-    _client->addFileToMap("STATE2.DAT", file);
-    // DEBUG FILES
-    _client->addFileToMap("INFO.DAT", file);
-    _client->addFileToMap("STATE1.DAT", file);
-    _client->addFileToMap("STATE2.NET", file);
-    _client->addFileToMap("SOBAKA.DAT", file);
-    _client->addFileToMap("A.DAT", file);
-    _client->addFileToMap("B.PDF", file);
 }
 
 void Device::startWork()
@@ -221,4 +211,10 @@ void Device::onChangeStatusTimeTimeout()
     if (_autoRegen)
         _client->randomiseState();
     else return;
+}
+
+void Device::onNodesUpdated()
+{
+    QByteArray file = _lampList->getFile();
+    _client->addFileToMap("STATE2.DAT", file);
 }

@@ -5,6 +5,7 @@ typedef unsigned short USHORT;
 typedef unsigned int UINT;
 typedef unsigned char UCHAR;
 
+#include <QObject>
 #include <cstdint>
 #include <string>
 #include <QFile>
@@ -30,17 +31,23 @@ struct Node
     UINT worktime;          // Время работы узла (в часах)
 };
 
-class LampList
+class LampList : public QObject
 {
+    Q_OBJECT
+
 public:
-    LampList();
+    LampList(QObject *parent = nullptr);
     void init(int num, int level = 0, UCHAR status = 0x00);
     QByteArray getFile();
     Node* getNodeById(UINT id);
     void updateNodes();
+    bool isNodesListEmpty() const;
+    int getNodesListSize() const;
+    void restoreInitialState();
 
 private:
     QList<Node> nodes;
+    QList<Node> prevNodes;
     QByteArray deviceArray;
     QList<NodeParameter> parameterTypes = {
         {0xFF00, 4}, {0xFF02, 4}, {0xFF03, 2},
@@ -51,6 +58,9 @@ private:
 private:
     bool writeNodesToFile(const QList<Node> &nodes);
     bool writeNodesToByteArray(const QList<Node> &nodes);
+
+signals:
+    void nodesUpdated();
 };
 
 #endif // LAMPLIST_H

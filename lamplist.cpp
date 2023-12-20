@@ -4,7 +4,8 @@
 #define SWAP_HL_UINT(i) ((i&0xFF)<<24)|((i&0xFF00)<<8)|((i&0xFF0000)>>8)|((i&0xFF000000)>>24)
 #define SWAP_HL_SHORT(i) ((i&0xFF)<<8)|((i&0xFF00)>>8)
 
-LampList::LampList()
+LampList::LampList(QObject *parent)
+    : QObject{parent}
 {
 }
 
@@ -27,8 +28,9 @@ void LampList::init(int num, int level, UCHAR status)
         nodes.append(newNode);
     }
 
-    if (!writeNodesToFile(nodes))
-        qDebug() << "Error writing nodes to file.";
+
+
+    updateNodes();
 }
 
 QByteArray LampList::getFile()
@@ -50,7 +52,32 @@ Node* LampList::getNodeById(UINT id)
 void LampList::updateNodes()
 {
     if (!writeNodesToFile(nodes))
+    {
         qDebug() << "Error writing nodes to file.";
+        return;
+    }
+
+    prevNodes = nodes;
+
+    emit nodesUpdated();
+}
+
+bool LampList::isNodesListEmpty() const
+{
+    if (nodes.isEmpty())
+        return true;
+    else
+        return false;
+}
+
+int LampList::getNodesListSize() const
+{
+    return nodes.size();
+}
+
+void LampList::restoreInitialState()
+{
+    nodes = prevNodes;
 }
 
 bool LampList::writeNodesToFile(const QList<Node> &nodes)
@@ -121,7 +148,7 @@ bool LampList::writeNodesToFile(const QList<Node> &nodes)
     }
 
     // Сохранение QByteArray в файл
-    QFile file("output2.dat");
+    QFile file("output.dat");
     if (file.open(QIODevice::WriteOnly))
     {
         file.write(deviceArray);
