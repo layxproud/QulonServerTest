@@ -167,7 +167,7 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
     }
 
     // Header
-    QCheckBox *headerCheckBox = new QCheckBox(ui->deviceTable->horizontalHeader());
+    headerCheckBox = new QCheckBox(ui->deviceTable->horizontalHeader());
     int firstColumnWidth = ui->deviceTable->columnWidth(0);
     int headerHeight = ui->deviceTable->horizontalHeader()->height();
     headerCheckBox->setVisible(true);
@@ -180,7 +180,8 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
         }
     });
 
-    connect(headerCheckBox, &QCheckBox::stateChanged, this, &MainWindow::selectAllDevices);
+    connect(headerCheckBox, &QCheckBox::clicked, this, &MainWindow::selectAllDevices);
+    connect(this, &MainWindow::selectionChanged, this, &MainWindow::changeHeaderCheckBox);
 
     totalDevicesValue->setText(QString::number(totalDevices));
 }
@@ -199,10 +200,8 @@ void MainWindow::updateDeviceDefaults()
     defaults.sendStatusInterval = ui->sendStatusIntMinBox->value() * SEC * MILSEC + ui->sendStatusIntSecBox->value() * MILSEC;
     defaults.changeStatusInterval = ui->changeStatusIntMinBox->value() * SEC * MILSEC + ui->changeStatusIntSecBox->value() * MILSEC;
     defaults.autoRegen = ui->relayAutoButton->isChecked();
-    if (ui->enableLogForAllButton->isChecked())
-        defaults.logStatus = true;
-    else
-        defaults.logStatus = false;
+//    if (ui->disableLogButton->isChecked())
+//        defaults.logStatus = false;
 
     for (const auto& device : iniParser->devices)
     {
@@ -239,18 +238,18 @@ void MainWindow::editByteForSelected(const UCHAR &stateByte, const QByteArray &b
     }
 }
 
-void MainWindow::selectAllDevices(const int state)
+void MainWindow::selectAllDevices(bool state)
 {
     if (ui->deviceTable->rowCount() == 0) return;
 
-    if (state == Qt::Checked)
+    if (state)
     {
         for (int row = 0; row < ui->deviceTable->rowCount(); ++row)
         {
             toggledDevices.insert(ui->deviceTable->item(row, 1)->text());
         }
     }
-    else if (state == Qt::Unchecked)
+    else
     {
         toggledDevices.clear();
     }
@@ -439,7 +438,8 @@ void MainWindow::onSelectionChanged(const QItemSelection &selected, const QItemS
             if (ui->enableLogForSelectedButton->isChecked())
             {
                 Device* device = iniParser->devices.value(ui->deviceTable->item(index.row(), 1)->text());
-                device->editLogStatus(true);
+                if (device)
+                    device->editLogStatus(true);
             }
         }
     }
@@ -452,9 +452,11 @@ void MainWindow::onSelectionChanged(const QItemSelection &selected, const QItemS
             if (ui->enableLogForSelectedButton->isChecked())
             {
                 Device* device = iniParser->devices.value(ui->deviceTable->item(index.row(), 1)->text());
-                device->editLogStatus(false);
-            }
+                if (device)
+                    device->editLogStatus(false);
+            } 
         }
+        emit selectionChanged();
     }
 }
 
@@ -556,6 +558,11 @@ void MainWindow::onListOfLampsActionTriggered()
         lightDevicesWindow->setDevices(iniParser->devices);
         lightDevicesWindow->show();
     }
+}
+
+void MainWindow::changeHeaderCheckBox()
+{
+
 }
 
 

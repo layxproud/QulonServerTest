@@ -51,7 +51,7 @@ private:
     QList<Node> prevNodes;
     QByteArray deviceArray;
     QList<NodeParameter> parameterTypes = {
-        {0xFF00, 4}, {0xFF02, 4}, {0xFF03, 2},
+        {0xFF00, 4}, {0xFF02, 1}, {0xFF03, 2},
         {0xFF10, 1}, {0xFF11, 1}, {0xFF12, 2},
         {0xFF13, 2}, {0xFF14, 4}, {0xFF15, 4}
     };

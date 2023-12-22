@@ -1,5 +1,6 @@
 #include "lamplist.h"
 #include <QDebug>
+#include <numeric>
 
 #define SWAP_HL_UINT(i) ((i&0xFF)<<24)|((i&0xFF00)<<8)|((i&0xFF0000)>>8)|((i&0xFF000000)>>24)
 #define SWAP_HL_SHORT(i) ((i&0xFF)<<8)|((i&0xFF00)>>8)
@@ -19,7 +20,7 @@ void LampList::init(int num, int level, UCHAR status)
         newNode.id = SWAP_HL_UINT(i);
         newNode.status = status;
         newNode.mode = SWAP_HL_SHORT(0);
-        newNode.levelHost = level;
+        newNode.levelHost = static_cast<UCHAR>(level);
         newNode.levelNode = 0;
         newNode.voltage = SWAP_HL_SHORT(220);
         newNode.current = SWAP_HL_SHORT(200);
@@ -98,7 +99,11 @@ bool LampList::writeNodesToFile(const QList<Node> &nodes)
     UINT swappedParamSize = SWAP_HL_UINT(parameterTypes.size());
     deviceArray.append(reinterpret_cast<const char*>(&swappedParamSize), sizeof(UINT));
     // Длина блока параметров для одного узла
-    UINT swappedNodeSize = SWAP_HL_UINT(24);
+    UINT nodeSize = std::accumulate(parameterTypes.begin(), parameterTypes.end(), 0,
+                                    [](int sum, const NodeParameter& np) {
+                                        return sum + np.size;
+                                    });
+    UINT swappedNodeSize = SWAP_HL_UINT(nodeSize);
     deviceArray.append(reinterpret_cast<const char*>(&swappedNodeSize), sizeof(UINT));
     // Смещение таблицы параметров узлов
     UINT swappedNodesOffset = SWAP_HL_UINT(0x00000020 + parameterTypes.size() * 8);

@@ -16,8 +16,8 @@ void ModbusHandler::initModbusHandler(const QString &phone)
     addState(0x23, QByteArray::fromHex("80800000000000000000000000000000000000000000000000000000000000"));
     addState(0x25, QByteArray::fromHex("000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"));
 
-    //_myAddr = 0xD0;
-    //_serverAddr = 0x00;
+    _myAddr = 0xD0;
+    _serverAddr = 0x00;
 }
 
 void ModbusHandler::parseMessage(const QByteArray &message)
@@ -43,7 +43,15 @@ void ModbusHandler::parseMessage(const QByteArray &message)
             // HEADER
             FL_MODBUS_MESSAGE modbusMessage;
             memcpy(&modbusMessage, rawMessage.constData(), sizeof(FL_MODBUS_MESSAGE));
-            _myAddr = modbusMessage.dist_addressMB;
+            // Основной Кулон
+            if (modbusMessage.dist_addressMB == 0x00 || modbusMessage.dist_addressMB == 0xD0)
+                _myAddr = 0xD0;
+            // Для файлов
+            else if (modbusMessage.dist_addressMB == 0xDC)
+                _myAddr = 0xDC;
+            // Возможно придется поменять
+            else
+                _myAddr = modbusMessage.dist_addressMB;
             _serverAddr = modbusMessage.sour_address;
 
             // DATA
@@ -555,6 +563,7 @@ void ModbusHandler::editByte(const UCHAR &stateByte, const QByteArray &byte)
 void ModbusHandler::addFileToMap(const QString &fileName, const QByteArray &fileData)
 {
     filesMap.insert(fileName, fileData);
+    addState(0x08, QByteArray::fromHex("6400"));
 }
 
 QByteArray ModbusHandler::addMarkerBytes(const QByteArray &input)

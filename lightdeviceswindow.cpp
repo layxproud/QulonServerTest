@@ -148,7 +148,7 @@ void LightDevicesWindow::updateValues()
     {
         case LampState::SetForChosen:
         {
-            lampNode->levelHost = ui->hostLevelSpinBox->value();
+            lampNode->levelHost = static_cast<UCHAR>(ui->hostLevelSpinBox->value());
             lampNode->status = getSelectedStatus();
             break;
         }
@@ -160,7 +160,7 @@ void LightDevicesWindow::updateValues()
                 lampList = device->getLampList();
                 lampNode = lampList->getNodeById(prevLampID);
 
-                lampNode->levelHost = ui->hostLevelSpinBox->value();
+                lampNode->levelHost = static_cast<UCHAR>(ui->hostLevelSpinBox->value());
                 lampNode->status = getSelectedStatus();
             }
             break;
@@ -257,43 +257,37 @@ void LightDevicesWindow::onSaveButtonClicked()
     for (auto &device : devices)
     {
         lampList = device->getLampList();
-        switch (currentState)
+        if (currentState == LampState::SetRandom)
         {
-            case LampState::SetRandom:
+            QList<Node> *nodesList = lampList->getNodesList();
+
+            for (auto &node : *nodesList)
             {
-                QList<Node> *nodesList = lampList->getNodesList();
-
-                for (auto &node : *nodesList)
+                // levelHost
+                if (node.levelHost > 0)
                 {
-                    // levelHost
-                    if (node.levelHost > 0)
-                    {
-                        int randomValue = QRandomGenerator::global()->bounded(node.levelHost + 1);
-                        node.levelHost = randomValue;
-                    }
-
-                    // status
-                    int randomStatusIndex = QRandomGenerator::global()->bounded(3);
-                    switch (randomStatusIndex)
-                    {
-                        case 0:
-                            node.status = 0x00;
-                            break;
-                        case 1:
-                            node.status = 0x40;
-                            break;
-                        case 2:
-                            node.status = 0x80;
-                            break;
-                    }
+                    int randomValue = QRandomGenerator::global()->bounded(node.levelHost + 1);
+                    node.levelHost = static_cast<UCHAR>(randomValue);
                 }
-                break;
-            }
 
-            default:
-                lampList->updateNodes();
-                break;
+                // status
+                int randomStatusIndex = QRandomGenerator::global()->bounded(3);
+                switch (randomStatusIndex)
+                {
+                    case 0:
+                        node.status = 0x00;
+                        break;
+                    case 1:
+                        node.status = 0x40;
+                        break;
+                    case 2:
+                        node.status = 0x80;
+                        break;
+                }
+            }
         }
+
+        lampList->updateNodes();
     }
 
     this->close();

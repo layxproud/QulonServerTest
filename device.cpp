@@ -33,6 +33,7 @@ Device::Device(const QString &phone, const QString &name, Logger *logger, QObjec
 
 Device::~Device()
 {
+    isBeingDestroyed = true;
     stopWork();
     delete connectionTimer;
     delete disconnectionTimer;
@@ -85,7 +86,7 @@ void Device::setDefaults(const DeviceDefaults &defaults)
     setSendStatusInterval(defaults.sendStatusInterval);
     setChangeStatusInterval(defaults.changeStatusInterval);
     setAutoRegen(defaults.autoRegen);
-    editLogStatus(defaults.logStatus);
+    // editLogStatus(defaults.logStatus);
 }
 
 void Device::setLampsList(int size, int level, UCHAR status)
@@ -179,6 +180,10 @@ void Device::startChangeStatusTimer()
 
 void Device::onConnectionChanged(const bool &status)
 {
+    if (isBeingDestroyed)
+        return;
+    if (status == false)
+        stopWork();
     emit connectionChanged(status);
     _connected = status;
 }

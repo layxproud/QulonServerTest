@@ -54,6 +54,7 @@ private:
     int _phoneId;
     bool _connected;
     bool _autoRegen;
+    bool isBeingDestroyed = false;
     DeviceDefaults _defaults;
 
     LampList* _lampList;

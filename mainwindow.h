@@ -84,6 +84,8 @@ private:
     // Список активных устройств
     QSet<QString> toggledDevices;
 
+    QCheckBox *headerCheckBox;
+
 private:
     // Инициализация строки состояния
     void initStatusBar();
@@ -104,9 +106,12 @@ private:
     // Отредактировать байты для активных устройств
     void editByteForSelected(const UCHAR &stateByte, const QByteArray &byte);
     // Выделить все устройства
-    void selectAllDevices(const int state);
+    void selectAllDevices(bool state);
     // Обновить чекбоксы состояния у устройств
     void updateCheckBoxesFromToggledDevices();
+
+signals:
+    void selectionChanged();
 
 private slots:
     // Обработчики событий и слотов
@@ -125,6 +130,7 @@ private slots:
     void onTurnOffDevicesButtonClicked();
     void onByteCalculated(const QByteArray &byte);
     void onListOfLampsActionTriggered();
+    void changeHeaderCheckBox();
 };
 
 #endif // MAINWINDOW_H
