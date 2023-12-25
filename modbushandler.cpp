@@ -103,6 +103,10 @@ void ModbusHandler::performCommand(const QByteArray &message)
         formStateMessage(false);
         break;
 
+    case PROT_RELAY_SET_CMD:
+        setRelay(message);
+        break;
+
     case PROT_FILE_SRCH_INIT_CMD:
         initFileSearch(message);
         break;
@@ -155,6 +159,14 @@ void ModbusHandler::formSyncMessage()
     emit messageToSend(_currentMessage);
 }
 
+void ModbusHandler::setRelay(const QByteArray &message)
+{
+    UCHAR relayByte = message[8];
+    editRelayByte(relayByte);
+    formDefaultAnswer(message);
+    formStateMessage(false);
+}
+
 void ModbusHandler::formDefaultAnswer(const QByteArray &message)
 {
     UCHAR crc[2];
@@ -195,7 +207,7 @@ void ModbusHandler::formStateMessage(const bool &outsideCall)
 
     // DATA
     QByteArray data;
-    for (const FL_MODBUS_STATE_CMD_MESSAGE& message : stateMessage)
+    for (const auto& message : stateMessage)
     {
         data.append(reinterpret_cast<const char*>(&message.len), sizeof(UCHAR));
         data.append(reinterpret_cast<const char*>(&message.type), sizeof(UCHAR));
@@ -525,6 +537,24 @@ void ModbusHandler::replyError(UCHAR errorCode)
     emit messageToSend(byteArray);
 }
 
+void ModbusHandler::editRelayByte(UCHAR relayByte)
+{
+    int relayIndex = relayByte & 0x0F;
+    bool turnRelayOn = (relayByte & 0xF0) >> 4;
+
+    auto it = std::find_if(stateMessage.begin(), stateMessage.end(), [](const FL_MODBUS_STATE_CMD_MESSAGE& state) {
+        return state.type == 0x21;
+    });
+
+    if (it != stateMessage.end())
+    {
+        if (turnRelayOn)
+            it->data[0] |= (1 << relayIndex);
+        else
+            it->data[0] &= ~(1 << relayIndex);
+    }
+}
+
 void ModbusHandler::randomiseRelayStates()
 {
     // first 4 bits
@@ -556,7 +586,6 @@ void ModbusHandler::editByte(const UCHAR &stateByte, const QByteArray &byte)
                 state.data[i] = byte[i];
         }
     }
-    // I THINK IT SHOULD BE FALSE BUT NOT SURE. ON QulonPanel IT WORKS FINE WITH FALSE
     formStateMessage(false);
 }
 

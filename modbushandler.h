@@ -46,6 +46,7 @@ private:
 private:
     void performCommand(const QByteArray &message);
     void formSyncMessage();
+    void setRelay(const QByteArray &message);
     void formDefaultAnswer(const QByteArray &message);
     void formIdentificationMessage();
     void addState(const UCHAR &type, const QByteArray &data);
@@ -56,6 +57,8 @@ private:
     void readFile(const QByteArray &message);
     void closeFile(const QByteArray &message);
     void replyError(UCHAR errorCode);
+
+    void editRelayByte(UCHAR relayByte);
 
     QByteArray addMarkerBytes(const QByteArray& input);
     QByteArray transformToData(const QByteArray& input);
