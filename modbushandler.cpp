@@ -162,7 +162,15 @@ void ModbusHandler::formSyncMessage()
 void ModbusHandler::setRelay(const QByteArray &message)
 {
     UCHAR relayByte = message[8];
-    editRelayByte(relayByte);
+    if (relayByte == static_cast<UCHAR>(0xFF))
+    {
+        QByteArray data = message.mid(8, 3);
+        editRelayByte(data);
+    }
+    else
+    {
+        editRelayByte(relayByte);
+    }
     formDefaultAnswer(message);
     formStateMessage(false);
 }
@@ -552,6 +560,30 @@ void ModbusHandler::editRelayByte(UCHAR relayByte)
             it->data[0] |= (1 << relayIndex);
         else
             it->data[0] &= ~(1 << relayIndex);
+    }
+}
+
+void ModbusHandler::editRelayByte(const QByteArray &relayMask)
+{
+    UCHAR relayState = relayMask[1];
+    UCHAR relays = relayMask[2];
+
+    auto it = std::find_if(stateMessage.begin(), stateMessage.end(), [](const FL_MODBUS_STATE_CMD_MESSAGE& state) {
+        return state.type == 0x21;
+    });
+
+    if (it != stateMessage.end())
+    {
+        for (int i = 0; i < 4; ++i)
+        {
+            if (relays & (1 << i))
+            {
+                if (relayState & (1 << i))
+                    it->data[0] |= (1 << i);
+                else
+                    it->data[0] &= ~(1 << i);
+            }
+        }
     }
 }
 

@@ -59,6 +59,7 @@ private:
     void replyError(UCHAR errorCode);
 
     void editRelayByte(UCHAR relayByte);
+    void editRelayByte(const QByteArray &relayMask);
 
     QByteArray addMarkerBytes(const QByteArray& input);
     QByteArray transformToData(const QByteArray& input);
