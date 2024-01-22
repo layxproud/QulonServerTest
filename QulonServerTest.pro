@@ -10,6 +10,7 @@ CONFIG += c++17
 
 SOURCES += \
     Prot.cpp \
+    ahpstatewindow.cpp \
     calculatebytewidget.cpp \
     device.cpp \
     iniparser.cpp \
@@ -23,6 +24,7 @@ SOURCES += \
 
 HEADERS += \
     Prot.h \
+    ahpstatewindow.h \
     calculatebytewidget.h \
     checkboxheader.h \
     device.h \
@@ -35,6 +37,7 @@ HEADERS += \
     tcpclient.h
 
 FORMS += \
+    ahpstatewindow.ui \
     lightdeviceswindow.ui \
     mainwindow.ui
 

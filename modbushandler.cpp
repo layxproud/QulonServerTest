@@ -311,7 +311,8 @@ void ModbusHandler::addState(const UCHAR &type, const QByteArray &data)
 {
     for (auto& state : stateMessage)
     {
-        if (state.type == type) return;
+        if (state.type == type)
+            return;
     }
     FL_MODBUS_STATE_CMD_MESSAGE newState;
     newState.len = data.size() + 2;
@@ -359,7 +360,6 @@ void ModbusHandler::searchFile(const QByteArray &message)
     }
 
     formDefaultAnswer(message);
-//    currentFileIterator = filesMap.begin();
     currentFileInfo.clear();
 }
 
@@ -618,13 +618,27 @@ void ModbusHandler::editByte(const UCHAR &stateByte, const QByteArray &byte)
                 state.data[i] = byte[i];
         }
     }
-    formStateMessage(false);
+    // formStateMessage(false);
 }
 
 void ModbusHandler::addFileToMap(const QString &fileName, const QByteArray &fileData)
 {
     filesMap.insert(fileName, fileData);
     addState(0x08, QByteArray::fromHex("6400"));
+}
+
+void ModbusHandler::editAhpState(const QByteArray &data)
+{
+    for (auto& state : stateMessage)
+    {
+        if (state.type == 0x05)
+        {
+            editByte(0x05, data);
+            return;
+        }
+    }
+
+    addState(0x05, data);
 }
 
 QByteArray ModbusHandler::addMarkerBytes(const QByteArray &input)

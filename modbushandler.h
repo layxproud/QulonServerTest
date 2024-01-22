@@ -18,6 +18,7 @@ public:
     void randomiseRelayStates();
     void editByte(const UCHAR &stateByte, const QByteArray &byte);
     void addFileToMap(const QString &fileName, const QByteArray &fileData);
+    void editAhpState(const QByteArray &data);
 
 private:
     const QByteArray SYNC_MESSAGE = QByteArray::fromHex("00800010");

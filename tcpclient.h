@@ -22,6 +22,7 @@ public:
     void editByte(const UCHAR &stateByte, const QByteArray &byte);
     void editLogStatus(const bool &status);
     void addFileToMap(const QString &fileName, const QByteArray &fileData);
+    void editAhpState(const QByteArray &data);
 
 private:
     QString _phone;

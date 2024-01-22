@@ -28,9 +28,6 @@ void LampList::init(int num, int level, UCHAR status)
         newNode.worktime = SWAP_HL_UINT(24 * 3600);
         nodes.append(newNode);
     }
-
-
-
     updateNodes();
 }
 

@@ -86,7 +86,6 @@ void Device::setDefaults(const DeviceDefaults &defaults)
     setSendStatusInterval(defaults.sendStatusInterval);
     setChangeStatusInterval(defaults.changeStatusInterval);
     setAutoRegen(defaults.autoRegen);
-    // editLogStatus(defaults.logStatus);
 }
 
 void Device::setLampsList(int size, int level, UCHAR status)
@@ -133,6 +132,11 @@ void Device::editByte(const UCHAR &stateByte, const QByteArray &byte)
 void Device::editLogStatus(const bool &status)
 {
     _client->editLogStatus(status);
+}
+
+void Device::editAhpState(const QByteArray &data)
+{
+    _client->editAhpState(data);
 }
 
 void Device::setConnectionInterval(const int &interval)

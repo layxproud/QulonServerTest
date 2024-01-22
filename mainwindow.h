@@ -12,6 +12,7 @@
 #include "logger.h"
 #include "calculatebytewidget.h"
 #include "lightdeviceswindow.h"
+#include "ahpstatewindow.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -34,6 +35,7 @@ private:
     Logger* logger;
     IniParser* iniParser;
     LightDevicesWindow* lightDevicesWindow;
+    AhpStateWindow* ahpStateWindow;
 
     // Запущен ли сервер
     bool isRunning;
@@ -130,7 +132,7 @@ private slots:
     void onTurnOffDevicesButtonClicked();
     void onByteCalculated(const QByteArray &byte);
     void onListOfLampsActionTriggered();
-    void changeHeaderCheckBox();
+    void onAhpStateActionTriggered();
 };
 
 #endif // MAINWINDOW_H

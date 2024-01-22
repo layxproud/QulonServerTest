@@ -32,16 +32,15 @@ LightDevicesWindow::LightDevicesWindow(QWidget *parent) :
     prevLampID = 1;
 }
 
+LightDevicesWindow::~LightDevicesWindow()
+{
+    delete ui;
+}
+
 void LightDevicesWindow::setDevices(const QMap<QString, Device *> &devices)
 {
     this->devices = devices;
     updateDeviceComboBox();
-}
-
-
-LightDevicesWindow::~LightDevicesWindow()
-{
-    delete ui;
 }
 
 void LightDevicesWindow::showEvent(QShowEvent *event)

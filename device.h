@@ -45,6 +45,7 @@ public:
     void debugConnect(const QString &serverAddress, quint16 serverPort);
     void editByte(const UCHAR &stateByte, const QByteArray &byte);
     void editLogStatus(const bool &status);
+    void editAhpState(const QByteArray &data);
 
 private:
     QString _phone;

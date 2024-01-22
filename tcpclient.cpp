@@ -68,6 +68,11 @@ void TcpClient::addFileToMap(const QString &fileName, const QByteArray &fileData
     _modbusHandler.addFileToMap(fileName, fileData);
 }
 
+void TcpClient::editAhpState(const QByteArray &data)
+{
+    _modbusHandler.editAhpState(data);
+}
+
 bool TcpClient::checkConnection()
 {
     if (!_connected)

@@ -20,9 +20,9 @@ class LightDevicesWindow : public QDialog
 
 public:
     explicit LightDevicesWindow(QWidget *parent = nullptr);
-    void setDevices(const QMap<QString, Device*> &devices);
-
     ~LightDevicesWindow();
+
+    void setDevices(const QMap<QString, Device*> &devices);
 
 protected:
     void showEvent(QShowEvent *event) override;

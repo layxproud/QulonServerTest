@@ -692,6 +692,7 @@
     </property>
     <addaction name="openIniFileAction"/>
     <addaction name="listOfLampsAction"/>
+    <addaction name="ahpStateAction"/>
    </widget>
    <addaction name="menu"/>
   </widget>
@@ -708,6 +709,7 @@
    </attribute>
    <addaction name="openIniFileAction"/>
    <addaction name="listOfLampsAction"/>
+   <addaction name="ahpStateAction"/>
   </widget>
   <action name="openIniFileAction">
    <property name="icon">
@@ -728,6 +730,15 @@
    </property>
    <property name="text">
     <string>Светильники</string>
+   </property>
+  </action>
+  <action name="ahpStateAction">
+   <property name="icon">
+    <iconset resource="rsc.qrc">
+     <normaloff>:/images/img/aal.png</normaloff>:/images/img/aal.png</iconset>
+   </property>
+   <property name="text">
+    <string>АХП</string>
    </property>
   </action>
  </widget>

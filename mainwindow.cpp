@@ -11,6 +11,7 @@ MainWindow::MainWindow(QWidget *parent)
     , selectedDevices{}
     , toggledDevices{}
     , lightDevicesWindow{nullptr}
+    , ahpStateWindow{nullptr}
 {
     ui->setupUi(this);
     logger->setLogWindow(ui->logWindow);
@@ -44,6 +45,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->turnOnDevicesButton, &QPushButton::clicked, this, &MainWindow::onTurnOnDevicesButtonClicked);
     connect(ui->turnOffDevicesButton, &QPushButton::clicked, this, &MainWindow::onTurnOffDevicesButtonClicked);
     connect(ui->listOfLampsAction, &QAction::triggered, this, &MainWindow::onListOfLampsActionTriggered);
+    connect(ui->ahpStateAction, &QAction::triggered, this , &MainWindow::onAhpStateActionTriggered);
 }
 
 MainWindow::~MainWindow()
@@ -172,27 +174,13 @@ void MainWindow::populateDeviceTable(const QMap<QString, Device*> &devices)
     int headerHeight = ui->deviceTable->horizontalHeader()->height();
     headerCheckBox->setVisible(true);
     headerCheckBox->setGeometry(0, 0, firstColumnWidth, headerHeight);
-
-    connect(ui->deviceTable->horizontalHeader(), &QHeaderView::sectionResized, this, [=](int logicalIndex, int newSize) {
-        if (logicalIndex == 0)
-        {
-            headerCheckBox->setGeometry(0, 0, newSize, headerHeight);
-        }
-    });
-
     connect(headerCheckBox, &QCheckBox::clicked, this, &MainWindow::selectAllDevices);
-    connect(this, &MainWindow::selectionChanged, this, &MainWindow::changeHeaderCheckBox);
 
     totalDevicesValue->setText(QString::number(totalDevices));
 }
 
 void MainWindow::updateDeviceDefaults()
 {
-//    if (toggledDevices.empty())
-//    {
-//        logger->logWarning(tr("Ни одно устройство не выделено. Изменения не внесены."));
-//        return;
-//    }
     DeviceDefaults defaults;
     defaults.connectionInterval = ui->conIntMinBox->value() * SEC * MILSEC + ui->conIntSecBox->value() * MILSEC;
     defaults.disconnectionFromInterval = ui->discIntFromMinBox->value() * SEC * MILSEC + ui->discIntFromSecBox->value() * MILSEC;
@@ -200,8 +188,6 @@ void MainWindow::updateDeviceDefaults()
     defaults.sendStatusInterval = ui->sendStatusIntMinBox->value() * SEC * MILSEC + ui->sendStatusIntSecBox->value() * MILSEC;
     defaults.changeStatusInterval = ui->changeStatusIntMinBox->value() * SEC * MILSEC + ui->changeStatusIntSecBox->value() * MILSEC;
     defaults.autoRegen = ui->relayAutoButton->isChecked();
-//    if (ui->disableLogButton->isChecked())
-//        defaults.logStatus = false;
 
     for (const auto& device : iniParser->devices)
     {
@@ -233,14 +219,14 @@ void MainWindow::editByteForSelected(const UCHAR &stateByte, const QByteArray &b
             logger->logError(tr("Устройство с ID ") + devicePhone + tr(" не существует или возникла иная ошибка"));
             continue;
         }
-        qDebug () << "In " << device->getPhone() << " changing bytes";
         device->editByte(stateByte, byte);
     }
 }
 
 void MainWindow::selectAllDevices(bool state)
 {
-    if (ui->deviceTable->rowCount() == 0) return;
+    if (ui->deviceTable->rowCount() == 0)
+        return;
 
     if (state)
     {
@@ -253,6 +239,7 @@ void MainWindow::selectAllDevices(bool state)
     {
         toggledDevices.clear();
     }
+
     updateCheckBoxesFromToggledDevices();
 }
 
@@ -266,23 +253,29 @@ void MainWindow::updateCheckBoxesFromToggledDevices()
 
         if (toggledDevices.contains(devicePhone))
         {
-            // Выставление чекбокса
-            if (checkBox->isChecked()) continue;
+            if (checkBox->isChecked())
+                continue;
             checkBox->setChecked(true);
 
-            // Подключение устройства если процесс уже запущен
-            if (!isRunning) continue;
+            if (!isRunning)
+                continue;
             Device* device = iniParser->devices.value(devicePhone);
-            if (!device) continue;
+            if (!device)
+            {
+                logger->logError(tr("Устройство с ID ") + devicePhone + tr(" не существует или возникла иная ошибка"));
+                continue;
+            }
             device->startWork();
         }
 
         else
         {
-            if (!checkBox->isChecked()) continue;
+            if (!checkBox->isChecked())
+                continue;
             checkBox->setChecked(false);
 
-            if (!isRunning) continue;
+            if (!isRunning)
+                continue;
             Device* device = iniParser->devices.value(devicePhone);
             if (!device)
             {
@@ -311,7 +304,8 @@ void MainWindow::onConnectButtonClicked()
                                                 QString(),
                                                 &ok);
 
-    if (!ok) return;
+    if (!ok)
+        return;
 
     if (phoneNumber.isEmpty())
     {
@@ -349,7 +343,6 @@ void MainWindow::onMultiConnectButtonClicked()
                 logger->logError(tr("Устройство с ID ") + devicePhone + tr(" не существует или возникла иная ошибка"));
                 continue;
             }
-            qDebug () << "Starting device " << device;
             device->startWork();
         }
         ui->multiConnectButton->setText(tr("СТОП"));
@@ -366,7 +359,6 @@ void MainWindow::onMultiConnectButtonClicked()
                 logger->logError(tr("Устройство с ID ") + devicePhone + tr(" не существует или возникла иная ошибка"));
                 continue;
             }
-            qDebug () << "Stopping device " << device;
             device->stopWork();
         }
         ui->multiConnectButton->setText(tr("СТАРТ"));
@@ -383,9 +375,7 @@ void MainWindow::onOpenIniFileActionTriggered()
                                                     tr("Config files (*.ini)"));
 
     if (filePath.isEmpty())
-    {
         return;
-    }
 
     if (!QFile::exists(filePath))
     {
@@ -403,13 +393,9 @@ void MainWindow::onOpenIniFileActionTriggered()
 void MainWindow::onSaveValuesButtonStateChanged(int state)
 {
     if (state == Qt::Checked)
-    {
         enableSpinBoxes(false);
-    }
     else if (state == Qt::Unchecked)
-    {
         enableSpinBoxes(true);
-    }
 }
 
 void MainWindow::updateDeviceStatus(QTableWidgetItem *item, const QString &status)
@@ -423,7 +409,6 @@ void MainWindow::onRelayManualButtonToggled(bool checked)
     for (auto w : widgetList)
         w->enableControl(checked);
 
-    // disable auto regen in devices
     for(auto& device : iniParser->devices)
         device->setAutoRegen(!checked);
 }
@@ -456,24 +441,23 @@ void MainWindow::onSelectionChanged(const QItemSelection &selected, const QItemS
                     device->editLogStatus(false);
             } 
         }
-        emit selectionChanged();
     }
 }
 
 void MainWindow::onEnableLogForAllButtonToggled(bool checked)
 {
-    if (iniParser->devices.isEmpty() || !checked) return;
+    if (iniParser->devices.isEmpty() || !checked)
+        return;
 
     for (Device* device : iniParser->devices)
         if (device)
             device->editLogStatus(checked);
-
-    qDebug() << "Включен лог для всех устройств" << checked;
 }
 
 void MainWindow::onEnableLogForSelectedButtonToggled(bool checked)
 {
-    if (selectedDevices.isEmpty() || !checked) return;
+    if (selectedDevices.isEmpty() || !checked)
+        return;
 
     for (Device* device : iniParser->devices)
     {
@@ -482,18 +466,16 @@ void MainWindow::onEnableLogForSelectedButtonToggled(bool checked)
         else
             device->editLogStatus(!checked);
     }
-    qDebug() << "Включен лог для устройств : " << selectedDevices << checked;
 }
 
 void MainWindow::onDisableLogButtonToggled(bool checked)
 {
-    if (iniParser->devices.isEmpty() || !checked) return;
+    if (iniParser->devices.isEmpty() || !checked)
+        return;
 
     for (Device* device : iniParser->devices)
         if (device)
             device->editLogStatus(!checked);
-
-    qDebug() << "Выключен лог для всех устройств" << checked;
 }
 
 void MainWindow::onClearLogButtonClicked()
@@ -510,6 +492,8 @@ void MainWindow::onTurnOnDevicesButtonClicked()
     }
 
     toggledDevices.unite(selectedDevices);
+    if (headerCheckBox->checkState() == Qt::Unchecked && toggledDevices.size() == totalDevices)
+        headerCheckBox->setChecked(true);
     updateCheckBoxesFromToggledDevices();
 }
 
@@ -522,6 +506,8 @@ void MainWindow::onTurnOffDevicesButtonClicked()
     }
 
     toggledDevices.subtract(selectedDevices);
+    if (headerCheckBox->checkState() == Qt::Checked)
+        headerCheckBox->setChecked(false);
     updateCheckBoxesFromToggledDevices();
 }
 
@@ -552,7 +538,8 @@ void MainWindow::onListOfLampsActionTriggered()
         return;
     }
 
-    if (!lightDevicesWindow || lightDevicesWindow->isHidden()) {
+    if (!lightDevicesWindow || lightDevicesWindow->isHidden())
+    {
         delete lightDevicesWindow;
         lightDevicesWindow = new LightDevicesWindow(this);
         lightDevicesWindow->setDevices(iniParser->devices);
@@ -560,9 +547,23 @@ void MainWindow::onListOfLampsActionTriggered()
     }
 }
 
-void MainWindow::changeHeaderCheckBox()
+void MainWindow::onAhpStateActionTriggered()
 {
+    if (iniParser->devices.isEmpty())
+    {
+        logger->logWarning(tr("Сначала откройте список устройств!"));
+        return;
+    }
 
+    if (!ahpStateWindow)
+    {
+        ahpStateWindow = new AhpStateWindow(this);
+        ahpStateWindow->setDevices(iniParser->devices);
+    }
+
+
+    ahpStateWindow->show();
+    ahpStateWindow->raise();
+    ahpStateWindow->activateWindow();
 }
-
 

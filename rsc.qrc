@@ -3,5 +3,6 @@
         <file>img/icon.png</file>
         <file>img/light.png</file>
         <file>img/open-file.png</file>
+        <file>img/aal.png</file>
     </qresource>
 </RCC>
