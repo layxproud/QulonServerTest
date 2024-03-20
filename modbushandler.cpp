@@ -219,8 +219,11 @@ void ModbusHandler::formDefaultAnswer(const QByteArray &message)
 
 void ModbusHandler::formStateMessage(const bool &outsideCall)
 {
-//    if(outsideCall)
-//        deviceAddress = 0xD0;
+    if(outsideCall)
+    {
+        deviceAddress = 0xD0;
+        formSyncMessage();
+    }
 
     UCHAR crc[2];
 
@@ -506,6 +509,9 @@ void ModbusHandler::closeFile(const QByteArray &message)
 void ModbusHandler::addFileToMap(const QString &fileName, const QByteArray &fileData)
 {
     filesMap.insert(fileName, fileData);
+    endOfFile = false;
+    currentFileData.clear();
+    currentFileInfo.clear();
     editState(0x08, QByteArray::fromHex("6400"));
 }
 
