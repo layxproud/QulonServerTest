@@ -119,6 +119,7 @@ private slots:
     // Обработчики событий и слотов
     void onConnectButtonClicked();
     void onMultiConnectButtonClicked();
+    void onSendStateButtonClicked();
     void onOpenIniFileActionTriggered();
     void onSaveValuesButtonStateChanged(int state);
     void updateDeviceStatus(QTableWidgetItem* item, const QString &status);

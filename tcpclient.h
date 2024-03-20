@@ -17,23 +17,29 @@ public:
     bool isConnected() const;
     void connectToServer(const QString &serverAddress, quint16 serverPort);
     void disconnectFromServer();
-    void sendState(const bool &outsideCall);
-    void randomiseState();
-    void editByte(const UCHAR &stateByte, const QByteArray &byte);
     void editLogStatus(const bool &status);
-    void addFileToMap(const QString &fileName, const QByteArray &fileData);
-    void editAhpState(const QByteArray &data);
+
+signals:
+    void connectionChanged(const bool &status);
+    void messageReceived(const QByteArray &message);
+
+public slots:
+    void sendMessage(const QByteArray& message);
+    void onWrongCRC(const UCHAR &expected1, const UCHAR &received1,
+                    const UCHAR &expected2, const UCHAR &received2);
+    void onWrongTx(const UCHAR &expected, const UCHAR &received);
+    void onUnknownCommand(const UCHAR &command);
 
 private:
-    QString _phone;
-    QTcpSocket _socket;
-    bool _connected;
-    QByteArray _currentMessage;
-    QByteArray _receivedMessage;
+    QString devicePhone;
+    QTcpSocket tcpSocket;
+    bool connectionStatus;
+    QByteArray currentMessage;
+    QByteArray receivedMessage;
     ModbusHandler _modbusHandler;
-    bool _logAllowed;
+    bool logAllowed;
 
-    Logger* _logger;
+    Logger* logger;
 
 private:
 
@@ -48,15 +54,6 @@ private slots:
     void onSocketDisconnected();
     void onSocketReadyRead();
     void onSocketError();
-    void onWrongCRC(const UCHAR &expected1, const UCHAR &received1,
-                    const UCHAR &expected2, const UCHAR &received2);
-    void onWrongTx(const UCHAR &expected, const UCHAR &received);
-    void onUnknownCommand(const UCHAR &command);
-
-    void sendMessage(const QByteArray& message);
-
-signals:
-    void connectionChanged(const bool &status);
 };
 
 #endif // TCPCLIENT_H

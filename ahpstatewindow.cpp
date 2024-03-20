@@ -30,7 +30,7 @@ void AhpStateWindow::changeAhpState()
 {
     for (const auto &device : devices)
     {
-        device->editAhpState(getStateArray());
+        device->editState(0x05, getStateArray());
     }
 }
 

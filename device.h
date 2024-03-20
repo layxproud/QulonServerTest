@@ -6,6 +6,7 @@
 #include "logger.h"
 #include "tcpclient.h"
 #include "lamplist.h"
+#include "modbushandler.h"
 
 struct DeviceDefaults
 {
@@ -43,24 +44,25 @@ public:
     void stopWork();
 
     void debugConnect(const QString &serverAddress, quint16 serverPort);
-    void editByte(const UCHAR &stateByte, const QByteArray &byte);
     void editLogStatus(const bool &status);
-    void editAhpState(const QByteArray &data);
+    void editState(const UCHAR &stateByte, const QByteArray &data);
+    void sendState();
 
 private:
-    QString _phone;
-    QString _name;
-    QString _ip;
-    quint16 _port;
-    int _phoneId;
-    bool _connected;
-    bool _autoRegen;
+    QString devicePhone;
+    QString deviceName;
+    QString serverIp;
+    quint16 serverPort;
+    int devicePhoneId;
+    bool connectionStatus;
+    bool autoRegen;
     bool isBeingDestroyed = false;
     DeviceDefaults _defaults;
 
-    LampList* _lampList;
-    Logger* _logger;
-    TcpClient* _client;
+    LampList* lampList;
+    Logger* logger;
+    TcpClient* tcpClient;
+    ModbusHandler* modbusHandler;
 
     // Таймеры
     QTimer *connectionTimer;

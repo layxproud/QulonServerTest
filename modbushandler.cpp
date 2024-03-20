@@ -3,26 +3,35 @@
 ModbusHandler::ModbusHandler(QObject *parent)
     : QObject{parent},
     currentFileIterator(filesMap.begin()),
-    currentFileInfo{}
-{
-
-}
+    currentFileInfo{},
+    endOfFile{false}
+{}
 
 void ModbusHandler::initModbusHandler(const QString &phone)
 {
-    _phone = phone;
+    devicePhone = phone;
 
-    addState(0x21, QByteArray::fromHex("00000000000000000000000000000000"));
-    addState(0x23, QByteArray::fromHex("80800000000000000000000000000000000000000000000000000000000000"));
-    addState(0x25, QByteArray::fromHex("000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"));
+    // Fill 0x2C block with default values
+    editCounterArrayByte(counterArray, 9, voltage*100);
+    editCounterArrayByte(counterArray, 10, voltage*100);
+    editCounterArrayByte(counterArray, 11, voltage*100);
+    calcFrequency();
+    editCounterArrayByte(counterArray, 20, nullValue);
+    editCounterArrayByte(counterArray, 21, nullValue);
+    editCounterArrayByte(counterArray, 22, nullValue);
 
-    _myAddr = 0xD0;
-    _serverAddr = 0x00;
+    editState(0x21, QByteArray::fromHex("00000000000000000000000000000000"));
+    editState(0x23, QByteArray::fromHex("80800000000000000000000000000000000000000000000000000000000000"));
+    editState(0x25, QByteArray::fromHex("000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"));
+    editState(0x2C, QByteArray(reinterpret_cast<char*>(counterArray), sizeof(counterArray)));
+
+    deviceAddress = 0xD0;
+    serverAddress = 0x00;
 }
 
 void ModbusHandler::parseMessage(const QByteArray &message)
 {
-    _receivedMessage = message;
+    receivedMessage = message;
     QList<QByteArray> messages = message.split(0xC0);
 
     for (const QByteArray &message : messages)
@@ -45,14 +54,14 @@ void ModbusHandler::parseMessage(const QByteArray &message)
             memcpy(&modbusMessage, rawMessage.constData(), sizeof(FL_MODBUS_MESSAGE));
             // Основной Кулон
             if (modbusMessage.dist_addressMB == 0x00 || modbusMessage.dist_addressMB == 0xD0)
-                _myAddr = 0xD0;
+                deviceAddress = 0xD0;
             // Для файлов
             else if (modbusMessage.dist_addressMB == 0xDC)
-                _myAddr = 0xDC;
+                deviceAddress = 0xDC;
             // Возможно придется поменять
             else
-                _myAddr = modbusMessage.dist_addressMB;
-            _serverAddr = modbusMessage.sour_address;
+                deviceAddress = modbusMessage.dist_addressMB;
+            serverAddress = modbusMessage.sour_address;
 
             // DATA
             int dataLength = modbusMessage.len;
@@ -71,19 +80,19 @@ void ModbusHandler::parseMessage(const QByteArray &message)
 
             // Check Tx
             // Same message case
-            if (_currTx == modbusMessage.tx_id)
+            if (currentTx == modbusMessage.tx_id)
             {
-                emit messageToSend(_currentMessage);
+                emit messageToSend(currentMessage);
             }
             // Next message case
-            else if (_currTx + 0x01 == modbusMessage.tx_id)
+            else if (currentTx + 0x01 == modbusMessage.tx_id)
             {
                 performCommand(rawMessage);
             }
             // Wrong message
             else
             {
-                emit wrongTx(_currTx, modbusMessage.tx_id);
+                emit wrongTx(currentTx, modbusMessage.tx_id);
             }
         }
         // FL_MODBUS_MESSAGE_SHORT case
@@ -150,13 +159,13 @@ void ModbusHandler::formSyncMessage()
     byteArray.append(syncData);
     byteArray.append(static_cast<char>(0xC0));
 
-    _currentMessage = byteArray;
+    currentMessage = byteArray;
 
     // Reset Tx Rx
-    _currTx = 0x80;
-    _currRx = 0x00;
+    currentTx = 0x80;
+    currentRx = 0x00;
 
-    emit messageToSend(_currentMessage);
+    emit messageToSend(currentMessage);
 }
 
 void ModbusHandler::setRelay(const QByteArray &message)
@@ -172,7 +181,6 @@ void ModbusHandler::setRelay(const QByteArray &message)
         editRelayByte(relayByte);
     }
     formDefaultAnswer(message);
-    formStateMessage(false);
 }
 
 void ModbusHandler::formDefaultAnswer(const QByteArray &message)
@@ -180,12 +188,12 @@ void ModbusHandler::formDefaultAnswer(const QByteArray &message)
     UCHAR crc[2];
     QByteArray rawData{};
     FL_MODBUS_MESSAGE modbusMessage;
-    modbusMessage.tx_id = _currTx + 0x01;
-    modbusMessage.rx_id = _currRx + 0x01;
-    modbusMessage.dist_addressMB = _myAddr;
+    modbusMessage.tx_id = currentTx + 0x01;
+    modbusMessage.rx_id = currentRx + 0x01;
+    modbusMessage.dist_addressMB = deviceAddress;
     modbusMessage.FUNCT = message[3];
-    modbusMessage.sour_address = _myAddr;
-    modbusMessage.dist_address = _serverAddr;
+    modbusMessage.sour_address = deviceAddress;
+    modbusMessage.dist_address = serverAddress;
     modbusMessage.command = message[6] + 0x80;
     modbusMessage.len = 0x00;
     QByteArray header(reinterpret_cast<const char*>(&modbusMessage), sizeof(modbusMessage));
@@ -202,15 +210,18 @@ void ModbusHandler::formDefaultAnswer(const QByteArray &message)
     messageArray = transformToData(messageArray);
     QByteArray byteArray = addMarkerBytes(messageArray);
 
-    _currentMessage = byteArray;
-    _currTx = modbusMessage.tx_id;
-    _currRx = modbusMessage.rx_id;
+    currentMessage = byteArray;
+    currentTx = modbusMessage.tx_id;
+    currentRx = modbusMessage.rx_id;
 
     emit messageToSend(byteArray);
 }
 
 void ModbusHandler::formStateMessage(const bool &outsideCall)
 {
+//    if(outsideCall)
+//        deviceAddress = 0xD0;
+
     UCHAR crc[2];
 
     // DATA
@@ -226,14 +237,14 @@ void ModbusHandler::formStateMessage(const bool &outsideCall)
     // HEADER
     FL_MODBUS_MESSAGE modbusMessage;
     if (outsideCall)
-        modbusMessage.tx_id = _currTx;
+        modbusMessage.tx_id = currentTx;
     else
-        modbusMessage.tx_id = _currTx + 0x01;
-    modbusMessage.rx_id = _currRx + 0x01;
-    modbusMessage.dist_addressMB = _myAddr;
+        modbusMessage.tx_id = currentTx + 0x01;
+    modbusMessage.rx_id = currentRx + 0x01;
+    modbusMessage.dist_addressMB = deviceAddress;
     modbusMessage.FUNCT = 0x6E;
-    modbusMessage.sour_address = _myAddr;
-    modbusMessage.dist_address = _serverAddr;
+    modbusMessage.sour_address = deviceAddress;
+    modbusMessage.dist_address = serverAddress;
     modbusMessage.command = PROT_STATE_REQ_OK;
     modbusMessage.len = static_cast<unsigned char>(rawData.size());
     QByteArray header(reinterpret_cast<const char*>(&modbusMessage), sizeof(modbusMessage));
@@ -250,9 +261,9 @@ void ModbusHandler::formStateMessage(const bool &outsideCall)
     messageArray = transformToData(messageArray);
     QByteArray byteArray = addMarkerBytes(messageArray);
 
-    _currentMessage = byteArray;
-    _currTx = modbusMessage.tx_id;
-    _currRx = modbusMessage.rx_id;
+    currentMessage = byteArray;
+    currentTx = modbusMessage.tx_id;
+    currentRx = modbusMessage.rx_id;
 
     emit messageToSend(byteArray);
 }
@@ -273,17 +284,17 @@ void ModbusHandler::formIdentificationMessage()
     idMessage.firmware_version[0] = static_cast<UCHAR>(0x01);
     idMessage.firmware_version[1] = static_cast<UCHAR>(0x33);
     memset(idMessage.phone, 0, sizeof(idMessage.phone));
-    memcpy(idMessage.phone, _phone.toUtf8().constData(), _phone.toUtf8().size());
+    memcpy(idMessage.phone, devicePhone.toUtf8().constData(), devicePhone.toUtf8().size());
     QByteArray rawData(reinterpret_cast<const char*>(&idMessage), sizeof(idMessage));
 
     // HEADER
     FL_MODBUS_MESSAGE modbusMessage;
-    modbusMessage.tx_id = _currTx + 0x01;
-    modbusMessage.rx_id = _currRx + 0x01;
-    modbusMessage.dist_addressMB = _myAddr;
+    modbusMessage.tx_id = currentTx + 0x01;
+    modbusMessage.rx_id = currentRx + 0x01;
+    modbusMessage.dist_addressMB = deviceAddress;
     modbusMessage.FUNCT = 0x6E;
-    modbusMessage.sour_address = _myAddr;
-    modbusMessage.dist_address = _serverAddr;
+    modbusMessage.sour_address = deviceAddress;
+    modbusMessage.dist_address = serverAddress;
     modbusMessage.command = PROT_ID_OK;
     modbusMessage.len = static_cast<unsigned char>(rawData.size());
     QByteArray header(reinterpret_cast<const char*>(&modbusMessage), sizeof(modbusMessage));
@@ -300,34 +311,19 @@ void ModbusHandler::formIdentificationMessage()
     messageArray = transformToData(messageArray);
     QByteArray byteArray = addMarkerBytes(messageArray);
 
-    _currentMessage = byteArray;
-    _currTx = modbusMessage.tx_id;
-    _currRx = modbusMessage.rx_id;
+    currentMessage = byteArray;
+    currentTx = modbusMessage.tx_id;
+    currentRx = modbusMessage.rx_id;
 
     emit messageToSend(byteArray);
 }
 
-void ModbusHandler::addState(const UCHAR &type, const QByteArray &data)
-{
-    for (auto& state : stateMessage)
-    {
-        if (state.type == type)
-            return;
-    }
-    FL_MODBUS_STATE_CMD_MESSAGE newState;
-    newState.len = data.size() + 2;
-    newState.type = type;
-    newState.data = data;
-    stateMessage.push_back(newState);
-}
+/* РАБОТА С ФАЙЛАМИ */
 
 void ModbusHandler::initFileSearch(const QByteArray &message)
 {
-    // reset data
     currentFileIterator = filesMap.begin();
     currentFileInfo.clear();
-
-    // Sends a regular answer
     formDefaultAnswer(message);
 }
 
@@ -378,12 +374,12 @@ void ModbusHandler::fileResult(bool calledAsResult)
 
     // HEADER
     FL_MODBUS_MESSAGE modbusMessage;
-    modbusMessage.tx_id = _currTx + 0x01;
-    modbusMessage.rx_id = _currRx + 0x01;
-    modbusMessage.dist_addressMB = _myAddr;
+    modbusMessage.tx_id = currentTx + 0x01;
+    modbusMessage.rx_id = currentRx + 0x01;
+    modbusMessage.dist_addressMB = deviceAddress;
     modbusMessage.FUNCT = 0x6E;
-    modbusMessage.sour_address = _myAddr;
-    modbusMessage.dist_address = _serverAddr;
+    modbusMessage.sour_address = deviceAddress;
+    modbusMessage.dist_address = serverAddress;
     if (calledAsResult)
         modbusMessage.command = PROT_FILE_RESULT_OK;
     else
@@ -403,9 +399,9 @@ void ModbusHandler::fileResult(bool calledAsResult)
     messageArray = transformToData(messageArray);
     QByteArray byteArray = addMarkerBytes(messageArray);
 
-    _currentMessage = byteArray;
-    _currTx = modbusMessage.tx_id;
-    _currRx = modbusMessage.rx_id;
+    currentMessage = byteArray;
+    currentTx = modbusMessage.tx_id;
+    currentRx = modbusMessage.rx_id;
 
     emit messageToSend(byteArray);
 }
@@ -470,12 +466,12 @@ void ModbusHandler::readFile(const QByteArray &message)
 
     // HEADER
     FL_MODBUS_MESSAGE modbusMessage;
-    modbusMessage.tx_id = _currTx + 0x01;
-    modbusMessage.rx_id = _currRx + 0x01;
-    modbusMessage.dist_addressMB = _myAddr;
+    modbusMessage.tx_id = currentTx + 0x01;
+    modbusMessage.rx_id = currentRx + 0x01;
+    modbusMessage.dist_addressMB = deviceAddress;
     modbusMessage.FUNCT = 0x6E;
-    modbusMessage.sour_address = _myAddr;
-    modbusMessage.dist_address = _serverAddr;
+    modbusMessage.sour_address = deviceAddress;
+    modbusMessage.dist_address = serverAddress;
     modbusMessage.command = PROT_FILE_RD_OK;
     modbusMessage.len = static_cast<unsigned char>(rawData.size());
     QByteArray header(reinterpret_cast<const char*>(&modbusMessage), sizeof(modbusMessage));
@@ -492,9 +488,9 @@ void ModbusHandler::readFile(const QByteArray &message)
     messageArray = transformToData(messageArray);
     QByteArray byteArray = addMarkerBytes(messageArray);
 
-    _currentMessage = byteArray;
-    _currTx = modbusMessage.tx_id;
-    _currRx = modbusMessage.rx_id;
+    currentMessage = byteArray;
+    currentTx = modbusMessage.tx_id;
+    currentRx = modbusMessage.rx_id;
 
     emit messageToSend(byteArray);
 }
@@ -507,6 +503,12 @@ void ModbusHandler::closeFile(const QByteArray &message)
     formDefaultAnswer(message);
 }
 
+void ModbusHandler::addFileToMap(const QString &fileName, const QByteArray &fileData)
+{
+    filesMap.insert(fileName, fileData);
+    editState(0x08, QByteArray::fromHex("6400"));
+}
+
 void ModbusHandler::replyError(UCHAR errorCode)
 {
     UCHAR crc[2];
@@ -516,12 +518,12 @@ void ModbusHandler::replyError(UCHAR errorCode)
 
     // HEADER
     FL_MODBUS_MESSAGE modbusMessage;
-    modbusMessage.tx_id = _currTx + 0x01;
-    modbusMessage.rx_id = _currRx + 0x01;
-    modbusMessage.dist_addressMB = _myAddr;
+    modbusMessage.tx_id = currentTx + 0x01;
+    modbusMessage.rx_id = currentRx + 0x01;
+    modbusMessage.dist_addressMB = deviceAddress;
     modbusMessage.FUNCT = 0x6E;
-    modbusMessage.sour_address = _myAddr;
-    modbusMessage.dist_address = _serverAddr;
+    modbusMessage.sour_address = deviceAddress;
+    modbusMessage.dist_address = serverAddress;
     modbusMessage.command = PROT_REPLY_ERROR;
     modbusMessage.len = static_cast<unsigned char>(rawData.size());
     QByteArray header(reinterpret_cast<const char*>(&modbusMessage), sizeof(modbusMessage));
@@ -538,11 +540,24 @@ void ModbusHandler::replyError(UCHAR errorCode)
     messageArray = transformToData(messageArray);
     QByteArray byteArray = addMarkerBytes(messageArray);
 
-    _currentMessage = byteArray;
-    _currTx = modbusMessage.tx_id;
-    _currRx = modbusMessage.rx_id;
+    currentMessage = byteArray;
+    currentTx = modbusMessage.tx_id;
+    currentRx = modbusMessage.rx_id;
 
     emit messageToSend(byteArray);
+}
+
+/* БЛОКИ СОСТОЯНИЙ */
+
+void ModbusHandler::addNewState(const UCHAR &type, const QByteArray &data)
+{
+    FL_MODBUS_STATE_CMD_MESSAGE newState;
+    newState.len = data.size() + 2;
+    newState.type = type;
+    newState.data = data;
+    stateMessage.push_back(newState);
+    if (type == 0x08)
+        editCounterArray();
 }
 
 void ModbusHandler::editRelayByte(UCHAR relayByte)
@@ -561,6 +576,7 @@ void ModbusHandler::editRelayByte(UCHAR relayByte)
         else
             it->data[0] &= ~(1 << relayIndex);
     }
+    editCounterArray();
 }
 
 void ModbusHandler::editRelayByte(const QByteArray &relayMask)
@@ -585,6 +601,71 @@ void ModbusHandler::editRelayByte(const QByteArray &relayMask)
             }
         }
     }
+    editCounterArray();
+}
+
+void ModbusHandler::editCounterArrayByte(uint8_t *buffer, int serialNumber, uint32_t value)
+{
+    int startIndex = (serialNumber - 1) * 4;
+
+    uint8_t bytes[4];
+    bytes[0] = (value >> 24) & 0xFF;
+    bytes[1] = (value >> 16) & 0xFF;
+    bytes[2] = (value >> 8) & 0xFF;
+    bytes[3] = value & 0xFF;
+
+    for (int i = 0; i < 4; ++i) {
+        buffer[startIndex + i] = bytes[i];
+    }
+}
+
+void ModbusHandler::calcNewCurrent()
+{
+    current = 0;
+
+    for (auto& state : stateMessage)
+    {
+        if (state.type == 0x21)
+        {
+            uint8_t byte = state.data[0];
+
+            while (byte)
+            {
+                current += byte & 1;
+                byte >>= 1;
+            }
+        }
+        if (state.type == 0x08 && state.data[0] == 0x64)
+        {
+            current++;
+        }
+    }
+    editCounterArrayByte(counterArray, 12, current*1000);
+    editCounterArrayByte(counterArray, 13, current*1000);
+    editCounterArrayByte(counterArray, 14, current*1000);
+}
+
+void ModbusHandler::calcNewPower()
+{
+    power = voltage * current;
+    editCounterArrayByte(counterArray, 5, power*100*3);
+    editCounterArrayByte(counterArray, 6, power*100);
+    editCounterArrayByte(counterArray, 7, power*100);
+    editCounterArrayByte(counterArray, 8, power*100);
+}
+
+void ModbusHandler::calcFrequency()
+{
+    double randomFloat = QRandomGenerator::global()->bounded(0.2) - 0.2;
+    frequency+=randomFloat;
+    editCounterArrayByte(counterArray, 19, frequency*100);
+}
+
+void ModbusHandler::editCounterArray()
+{
+    calcNewCurrent();
+    calcNewPower();
+    editState(0x2C, QByteArray(reinterpret_cast<char*>(counterArray), sizeof(counterArray)));
 }
 
 void ModbusHandler::randomiseRelayStates()
@@ -606,39 +687,29 @@ void ModbusHandler::randomiseRelayStates()
             state.data[1] = randomByte23_2;
         }
     }
+    editCounterArray();
 }
 
-void ModbusHandler::editByte(const UCHAR &stateByte, const QByteArray &byte)
+void ModbusHandler::editState(const UCHAR &stateByte, const QByteArray &data)
 {
     for (auto& state : stateMessage)
     {
+        // Костыль чтобы не возникло рекурсии при обновлении реле из ГУИ и обновлением блока 0x2C
+        if (state.type == stateByte && stateByte == 0x21)
+        {
+            for (int i = 0; i < data.size(); i++)
+                state.data[i] = data[i];
+            editCounterArray();
+            return;
+        }
         if (state.type == stateByte)
         {
-            for (int i = 0; i < byte.size(); i++)
-                state.data[i] = byte[i];
-        }
-    }
-    // formStateMessage(false);
-}
-
-void ModbusHandler::addFileToMap(const QString &fileName, const QByteArray &fileData)
-{
-    filesMap.insert(fileName, fileData);
-    addState(0x08, QByteArray::fromHex("6400"));
-}
-
-void ModbusHandler::editAhpState(const QByteArray &data)
-{
-    for (auto& state : stateMessage)
-    {
-        if (state.type == 0x05)
-        {
-            editByte(0x05, data);
+            for (int i = 0; i < data.size(); i++)
+                state.data[i] = data[i];
             return;
         }
     }
-
-    addState(0x05, data);
+    addNewState(stateByte, data);
 }
 
 QByteArray ModbusHandler::addMarkerBytes(const QByteArray &input)

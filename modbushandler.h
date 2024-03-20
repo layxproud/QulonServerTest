@@ -13,24 +13,22 @@ class ModbusHandler : public QObject
 public:
     explicit ModbusHandler(QObject *parent = nullptr);
     void initModbusHandler(const QString& phone);
-    void parseMessage(const QByteArray &rawMessage);
     void formStateMessage(const bool &outsideCall);
     void randomiseRelayStates();
-    void editByte(const UCHAR &stateByte, const QByteArray &byte);
     void addFileToMap(const QString &fileName, const QByteArray &fileData);
-    void editAhpState(const QByteArray &data);
+    void editState(const UCHAR &stateByte, const QByteArray &data);
 
 private:
     const QByteArray SYNC_MESSAGE = QByteArray::fromHex("00800010");
 
-    QString _phone;
-    UCHAR _currTx;
-    UCHAR _currRx;
-    UCHAR _myAddr;
-    UCHAR _serverAddr;
+    QString devicePhone;
+    UCHAR currentTx;
+    UCHAR currentRx;
+    UCHAR deviceAddress;
+    UCHAR serverAddress;
 
-    QByteArray _currentMessage;
-    QByteArray _receivedMessage;
+    QByteArray currentMessage;
+    QByteArray receivedMessage;
 
     // Stores relay state. Has default states, new can be added
     std::vector<FL_MODBUS_STATE_CMD_MESSAGE> stateMessage;
@@ -41,16 +39,14 @@ private:
     // Stores current file
     QByteArray currentFileInfo;
     QByteArray currentFileData;
+    bool endOfFile;
 
-    bool endOfFile = false;
-
-private:
     void performCommand(const QByteArray &message);
     void formSyncMessage();
     void setRelay(const QByteArray &message);
     void formDefaultAnswer(const QByteArray &message);
     void formIdentificationMessage();
-    void addState(const UCHAR &type, const QByteArray &data);
+    void addNewState(const UCHAR &type, const QByteArray &data);
     void initFileSearch(const QByteArray &message);
     void searchFile(const QByteArray &message);
     void fileResult(bool calledAsResult);
@@ -61,6 +57,19 @@ private:
 
     void editRelayByte(UCHAR relayByte);
     void editRelayByte(const QByteArray &relayMask);
+
+    // 0x2C block
+    uint8_t counterArray[88] = {0};
+    int current = 0;
+    int power = 0;
+    int voltage = 220;
+    double frequency = 50;
+    uint32_t nullValue = 4294967295;
+    void editCounterArrayByte(uint8_t* buffer, int serialNumber, uint32_t value);
+    void calcNewCurrent();
+    void calcNewPower();
+    void calcFrequency();
+    void editCounterArray();
 
     QByteArray addMarkerBytes(const QByteArray& input);
     QByteArray transformToData(const QByteArray& input);
@@ -74,6 +83,9 @@ signals:
                   const UCHAR &expected2, const UCHAR &received2);
     void wrongTx(const UCHAR &expected, const UCHAR &received);
     void unknownCommand(const UCHAR &command);
+
+public slots:
+    void parseMessage(const QByteArray &rawMessage);
 };
 
 #endif // MODBUSHANDLER_H

@@ -4,12 +4,12 @@
 
 Device::Device(QObject *parent)
     : QObject{parent},
-    _autoRegen(true),
+    autoRegen(true),
     connectionTimer(new QTimer(this)),
     disconnectionTimer(new QTimer(this)),
     sendStatusTimer(new QTimer(this)),
     changeStatusTimer(new QTimer(this)),
-    _lampList(new LampList(this))
+    lampList(new LampList(this))
 {
 
 }
@@ -17,18 +17,28 @@ Device::Device(QObject *parent)
 Device::Device(const QString &phone, const QString &name, Logger *logger, QObject *parent)
     : Device{parent}
 {
-    _name = name;
-    _phone = phone;
-    _logger = logger;
-    _client = new TcpClient(_logger, _phone, this);
-    connect(_client, &TcpClient::connectionChanged, this, &Device::onConnectionChanged);
-    _connected = _client->isConnected();
+    deviceName = name;
+    devicePhone = phone;
+    this->logger = logger;
+
+    tcpClient = new TcpClient(logger, devicePhone, this);
+    connectionStatus = tcpClient->isConnected();
+
+    modbusHandler = new ModbusHandler(this);
+    modbusHandler->initModbusHandler(devicePhone);
+
+    connect(tcpClient, &TcpClient::connectionChanged, this, &Device::onConnectionChanged);
+    connect(tcpClient, &TcpClient::messageReceived, modbusHandler, &ModbusHandler::parseMessage);
+    connect(modbusHandler, &ModbusHandler::messageToSend, tcpClient, &TcpClient::sendMessage);
+    connect(modbusHandler, &ModbusHandler::wrongCRC, tcpClient, &TcpClient::onWrongCRC);
+    connect(modbusHandler, &ModbusHandler::wrongTx, tcpClient, &TcpClient::onWrongTx);
+    connect(modbusHandler, &ModbusHandler::unknownCommand, tcpClient, &TcpClient::onUnknownCommand);
 
     connect(connectionTimer, &QTimer::timeout, this, &Device::onConnectionTimerTimeout);
     connect(disconnectionTimer, &QTimer::timeout, this, &Device::onDisconnectionTimerTimeout);
     connect(sendStatusTimer, &QTimer::timeout, this, &Device::onSendStatusTimerTimeout);
     connect(changeStatusTimer, &QTimer::timeout, this, &Device::onChangeStatusTimeTimeout);
-    connect(_lampList, &LampList::nodesUpdated, this, &Device::onNodesUpdated);
+    connect(lampList, &LampList::nodesUpdated, this, &Device::onNodesUpdated);
 }
 
 Device::~Device()
@@ -40,43 +50,43 @@ Device::~Device()
     delete sendStatusTimer;
     delete changeStatusTimer;
 
-    if (_client->isConnected())
-        _client->disconnectFromServer();
+    if (tcpClient->isConnected())
+        tcpClient->disconnectFromServer();
 }
 
 QString Device::getPhone() const
 {
-    return _phone;
+    return devicePhone;
 }
 
 QString Device::getName() const
 {
-    return _name;
+    return deviceName;
 }
 
 LampList* Device::getLampList() const
 {
-    return _lampList;
+    return lampList;
 }
 
 bool Device::isConnected() const
 {
-    return _connected;
+    return connectionStatus;
 }
 
 void Device::setIp(const QString &ip)
 {
-    _ip = ip;
+    serverIp = ip;
 }
 
 void Device::setPort(const quint16 &port)
 {
-    _port = port;
+    serverPort = port;
 }
 
 void Device::setAutoRegen(const bool &regen)
 {
-    _autoRegen = regen;
+    autoRegen = regen;
 }
 
 void Device::setDefaults(const DeviceDefaults &defaults)
@@ -90,7 +100,7 @@ void Device::setDefaults(const DeviceDefaults &defaults)
 
 void Device::setLampsList(int size, int level, UCHAR status)
 {
-    _lampList->init(size, level, status);
+    lampList->init(size, level, status);
 }
 
 void Device::startWork()
@@ -107,7 +117,7 @@ void Device::stopWork()
     if (disconnectionTimer->isActive())
     {
         disconnectionTimer->stop();
-        _client->disconnectFromServer();
+        tcpClient->disconnectFromServer();
     }
     if (sendStatusTimer->isActive())
     {
@@ -121,22 +131,22 @@ void Device::stopWork()
 
 void Device::debugConnect(const QString &serverAddress, quint16 serverPort)
 {
-    _client->connectToServer(serverAddress, serverPort);
-}
-
-void Device::editByte(const UCHAR &stateByte, const QByteArray &byte)
-{
-    _client->editByte(stateByte, byte);
+    tcpClient->connectToServer(serverAddress, serverPort);
 }
 
 void Device::editLogStatus(const bool &status)
 {
-    _client->editLogStatus(status);
+    tcpClient->editLogStatus(status);
 }
 
-void Device::editAhpState(const QByteArray &data)
+void Device::editState(const UCHAR &stateByte, const QByteArray &data)
 {
-    _client->editAhpState(data);
+    modbusHandler->editState(stateByte, data);
+}
+
+void Device::sendState()
+{
+    modbusHandler->formStateMessage(true);
 }
 
 void Device::setConnectionInterval(const int &interval)
@@ -189,12 +199,12 @@ void Device::onConnectionChanged(const bool &status)
     if (status == false)
         stopWork();
     emit connectionChanged(status);
-    _connected = status;
+    connectionStatus = status;
 }
 
 void Device::onConnectionTimerTimeout()
 {
-    _client->connectToServer(_ip, _port);
+    tcpClient->connectToServer(serverIp, serverPort);
     connectionTimer->stop();
     startSendStatusTimer();
     startDisconnectionTimer();
@@ -203,7 +213,7 @@ void Device::onConnectionTimerTimeout()
 
 void Device::onDisconnectionTimerTimeout()
 {
-    _client->disconnectFromServer();
+    tcpClient->disconnectFromServer();
     disconnectionTimer->stop();
     sendStatusTimer->stop();
     changeStatusTimer->stop();
@@ -212,18 +222,18 @@ void Device::onDisconnectionTimerTimeout()
 
 void Device::onSendStatusTimerTimeout()
 {
-    _client->sendState(true);
+    modbusHandler->formStateMessage(true);
 }
 
 void Device::onChangeStatusTimeTimeout()
 {
-    if (_autoRegen)
-        _client->randomiseState();
+    if (autoRegen)
+        modbusHandler->randomiseRelayStates();
     else return;
 }
 
 void Device::onNodesUpdated()
 {
-    QByteArray file = _lampList->getFile();
-    _client->addFileToMap("STATE2.DAT", file);
+    QByteArray file = lampList->getFile();
+    modbusHandler->addFileToMap("STATE2.DAT", file);
 }

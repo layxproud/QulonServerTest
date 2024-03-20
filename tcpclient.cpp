@@ -2,83 +2,50 @@
 
 TcpClient::TcpClient(Logger* logger, const QString& phone, QObject *parent)
     : QObject{parent},
-    _phone{phone},
-    _connected{false},
-    _logAllowed(true),
-    _logger{logger}
+    devicePhone{phone},
+    connectionStatus{false},
+    logAllowed(true),
+    logger{logger}
 {
-    connect(&_socket, &QTcpSocket::connected, this, &TcpClient::onSocketConnected);
-    connect(&_socket, &QTcpSocket::disconnected, this, &TcpClient::onSocketDisconnected);
-    connect(&_socket, &QAbstractSocket::errorOccurred, this, &TcpClient::onSocketError);
-    connect(&_socket, &QTcpSocket::readyRead, this, &TcpClient::onSocketReadyRead);
-
-    connect(&_modbusHandler, &ModbusHandler::messageToSend, this, &TcpClient::sendMessage);
-    connect(&_modbusHandler, &ModbusHandler::wrongCRC, this, &TcpClient::onWrongCRC);
-    connect(&_modbusHandler, &ModbusHandler::wrongTx, this, &TcpClient::onWrongTx);
-    connect(&_modbusHandler, &ModbusHandler::unknownCommand, this, &TcpClient::onUnknownCommand);
-
-    _modbusHandler.initModbusHandler(_phone);
+    connect(&tcpSocket, &QTcpSocket::connected, this, &TcpClient::onSocketConnected);
+    connect(&tcpSocket, &QTcpSocket::disconnected, this, &TcpClient::onSocketDisconnected);
+    connect(&tcpSocket, &QAbstractSocket::errorOccurred, this, &TcpClient::onSocketError);
+    connect(&tcpSocket, &QTcpSocket::readyRead, this, &TcpClient::onSocketReadyRead);
 }
 
 
 TcpClient::~TcpClient()
 {
-    if (_socket.state() == QAbstractSocket::ConnectedState)
+    if (tcpSocket.state() == QAbstractSocket::ConnectedState)
         disconnectFromServer();
 }
 
 bool TcpClient::isConnected() const
 {
-    return _connected;
+    return connectionStatus;
 }
 
 void TcpClient::connectToServer(const QString &serverAddress, quint16 serverPort)
 {
-    _socket.connectToHost(serverAddress, serverPort);
+    tcpSocket.connectToHost(serverAddress, serverPort);
 }
 
 void TcpClient::disconnectFromServer()
 {
-    _socket.disconnectFromHost();
-}
-
-void TcpClient::sendState(const bool &outsideCall)
-{
-    _modbusHandler.formStateMessage(outsideCall);
-}
-
-void TcpClient::randomiseState()
-{
-    _modbusHandler.randomiseRelayStates();
-}
-
-void TcpClient::editByte(const UCHAR &stateByte, const QByteArray &byte)
-{
-    _modbusHandler.editByte(stateByte, byte);
+    tcpSocket.disconnectFromHost();
 }
 
 void TcpClient::editLogStatus(const bool &status)
 {
-    _logAllowed = status;
-    qDebug () << "У устройства с ID " << _phone << " лог выставлен в " << _logAllowed;
-}
-
-void TcpClient::addFileToMap(const QString &fileName, const QByteArray &fileData)
-{
-    _modbusHandler.addFileToMap(fileName, fileData);
-}
-
-void TcpClient::editAhpState(const QByteArray &data)
-{
-    _modbusHandler.editAhpState(data);
+    logAllowed = status;
 }
 
 bool TcpClient::checkConnection()
 {
-    if (!_connected)
+    if (!connectionStatus)
     {
-        if (_logAllowed)
-            _logger->logWarning(tr("Устройство c ID ") + _phone + tr(" не подключено к серверу!"));
+        if (logAllowed)
+            logger->logWarning(tr("Устройство c ID ") + devicePhone + tr(" не подключено к серверу!"));
         return false;
     }
     else return true;
@@ -86,34 +53,33 @@ bool TcpClient::checkConnection()
 
 void TcpClient::onSocketConnected()
 {
-    _connected = true;
-    if (_logAllowed)
-        _logger->logInfo(tr("Устройство с ID ") + _phone + tr(" подключено к серверу. Выполняется синхронизация..."));
-    emit connectionChanged(_connected);
+    connectionStatus = true;
+    if (logAllowed)
+        logger->logInfo(tr("Устройство с ID ") + devicePhone + tr(" подключено к серверу. Выполняется синхронизация..."));
+    emit connectionChanged(connectionStatus);
 }
 
 void TcpClient::onSocketDisconnected()
 {
-    _connected = false;
-    if (_logAllowed)
-        _logger->logInfo(tr("Устройство с ID ") + _phone + tr(" отключилось от сервера."));
-    emit connectionChanged(_connected);
+    connectionStatus = false;
+    if (logAllowed)
+        logger->logInfo(tr("Устройство с ID ") + devicePhone + tr(" отключилось от сервера."));
+    emit connectionChanged(connectionStatus);
 }
 
 void TcpClient::onSocketReadyRead()
 {
-    _receivedMessage = _socket.readAll();
-    if (_logAllowed)
-        _logger->logInfo(tr("ID ") + _phone + tr(" Получило сообщение: ") + _logger->byteArrToStr(_receivedMessage));
-
-    _modbusHandler.parseMessage(_receivedMessage);
+    receivedMessage = tcpSocket.readAll();
+    if (logAllowed)
+        logger->logInfo(tr("ID ") + devicePhone + tr(" Получило сообщение: ") + logger->byteArrToStr(receivedMessage));
+    emit messageReceived(receivedMessage);
 }
 
 void TcpClient::onSocketError()
 {
-    QString errorString = _socket.errorString();
-    if (_logAllowed)
-        _logger->logError(tr("Ошибка сокета: ") + errorString);
+    QString errorString = tcpSocket.errorString();
+    if (logAllowed)
+        logger->logError(tr("Ошибка сокета: ") + errorString);
 }
 
 void TcpClient::onWrongCRC(const UCHAR &expected1, const UCHAR &received1, const UCHAR &expected2, const UCHAR &received2)
@@ -124,8 +90,8 @@ void TcpClient::onWrongCRC(const UCHAR &expected1, const UCHAR &received1, const
         QString::number(received1, 16).rightJustified(2, '0'),
         QString::number(received2, 16).rightJustified(2, '0'));
 
-    if (_logAllowed)
-        _logger->logError(message);
+    if (logAllowed)
+        logger->logError(message);
 }
 
 void TcpClient::onWrongTx(const UCHAR &expected, const UCHAR &received)
@@ -134,24 +100,24 @@ void TcpClient::onWrongTx(const UCHAR &expected, const UCHAR &received)
         QString::number(expected, 16).rightJustified(2, '0'),
         QString::number(received, 16).rightJustified(2, '0'));
 
-    if (_logAllowed)
-        _logger->logError(message);
+    if (logAllowed)
+        logger->logError(message);
 }
 
 void TcpClient::onUnknownCommand(const UCHAR &command)
 {
     QString commandString = QString("0x%1").arg(command, 2, 16, QChar('0'));
-    if (_logAllowed)
-        _logger->logWarning(tr("Устройство с ID ") + _phone + tr(" встретило незнакомую команду: ") + commandString + tr(" Отправляю стандартный ответ..."));
+    if (logAllowed)
+        logger->logWarning(tr("Устройство с ID ") + devicePhone + tr(" встретило незнакомую команду: ") + commandString + tr(" Отправляю стандартный ответ..."));
 }
 
 void TcpClient::sendMessage(const QByteArray &message)
 {
     if (!checkConnection())
         return;
-    _currentMessage = message;
-    _socket.write(message);
+    currentMessage = message;
+    tcpSocket.write(message);
 
-    if (_logAllowed)
-        _logger->logInfo(tr("ID ") + _phone + tr(" Отправило сообщение: ") + _logger->byteArrToStr(_currentMessage));
+    if (logAllowed)
+        logger->logInfo(tr("ID ") + devicePhone + tr(" Отправило сообщение: ") + logger->byteArrToStr(currentMessage));
 }

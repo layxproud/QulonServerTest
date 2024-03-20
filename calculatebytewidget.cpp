@@ -36,7 +36,6 @@ CalculateByteWidget::CalculateByteWidget(int numBits, QWidget *parent)
     layout->addWidget(calculateByteButton, 0, numBits, 2, 1);
 
     connect(calculateByteButton, &QPushButton::clicked, [=]() {
-        qDebug() << "calculatedByte:" << calculatedByte;
         emit byteCalculated(calculatedByte);
     });
 

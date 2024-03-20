@@ -34,6 +34,7 @@ MainWindow::MainWindow(QWidget *parent)
     // GUI connects
     connect(ui->multiConnectButton, &QPushButton::clicked, this, &MainWindow::onMultiConnectButtonClicked);
     connect(ui->connectButton, &QPushButton::clicked, this, &MainWindow::onConnectButtonClicked);
+    connect(ui->sendStateButton, &QPushButton::clicked, this, &MainWindow::onSendStateButtonClicked);
     connect(ui->saveValuesButton, &QCheckBox::stateChanged, this, &MainWindow::onSaveValuesButtonStateChanged);
     connect(ui->openIniFileAction, &QAction::triggered, this, &MainWindow::onOpenIniFileActionTriggered);
     connect(ui->relayManualButton, &QRadioButton::toggled, this, &MainWindow::onRelayManualButtonToggled);
@@ -219,7 +220,7 @@ void MainWindow::editByteForSelected(const UCHAR &stateByte, const QByteArray &b
             logger->logError(tr("Устройство с ID ") + devicePhone + tr(" не существует или возникла иная ошибка"));
             continue;
         }
-        device->editByte(stateByte, byte);
+        device->editState(stateByte, byte);
     }
 }
 
@@ -367,6 +368,26 @@ void MainWindow::onMultiConnectButtonClicked()
     }
 }
 
+void MainWindow::onSendStateButtonClicked()
+{
+    if (toggledDevices.isEmpty())
+    {
+        logger->logWarning(tr("Устройства не выбраны"));
+        return;
+    }
+
+    for (const QString& devicePhone : toggledDevices)
+    {
+        Device* device = iniParser->devices.value(devicePhone);
+        if (!device)
+        {
+            logger->logError(tr("Устройство с ID ") + devicePhone + tr(" не существует или возникла иная ошибка"));
+            continue;
+        }
+        device->sendState();
+    }
+}
+
 void MainWindow::onOpenIniFileActionTriggered()
 {
     QString filePath = QFileDialog::getOpenFileName(this,
@@ -385,6 +406,8 @@ void MainWindow::onOpenIniFileActionTriggered()
 
     iniParser->clearData();
     iniParser->parseIniFile(filePath);
+    selectedDevices.clear();
+    toggledDevices.clear();
     populateDeviceTable(iniParser->devices);
     ipValue->setText(iniParser->gprsSettings["ip"]);
     portValue->setText(iniParser->gprsSettings["port"]);
