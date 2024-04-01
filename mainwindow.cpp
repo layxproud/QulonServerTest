@@ -7,11 +7,11 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
     , logger(new Logger(this))
     , iniParser(new IniParser(logger, this))
+    , lightDevicesWindow{nullptr}
+    , ahpStateWindow{nullptr}
     , isRunning(false)
     , selectedDevices{}
     , toggledDevices{}
-    , lightDevicesWindow{nullptr}
-    , ahpStateWindow{nullptr}
 {
     ui->setupUi(this);
     logger->setLogWindow(ui->logWindow);
@@ -33,7 +33,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     // GUI connects
     connect(ui->multiConnectButton, &QPushButton::clicked, this, &MainWindow::onMultiConnectButtonClicked);
-    connect(ui->connectButton, &QPushButton::clicked, this, &MainWindow::onConnectButtonClicked);
+    // connect(ui->connectButton, &QPushButton::clicked, this, &MainWindow::onConnectButtonClicked);
     connect(ui->sendStateButton, &QPushButton::clicked, this, &MainWindow::onSendStateButtonClicked);
     connect(ui->saveValuesButton, &QCheckBox::stateChanged, this, &MainWindow::onSaveValuesButtonStateChanged);
     connect(ui->openIniFileAction, &QAction::triggered, this, &MainWindow::onOpenIniFileActionTriggered);
